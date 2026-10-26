@@ -1,0 +1,28 @@
+[package]
+name              = "kubicle-imap"
+description       = "The IMAP client kubicle's server syncs and acts through"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+base64.workspace       = true
+bytes.workspace        = true
+chrono                 = { version = "0.4", default-features = false }                       # imap-types' search dates
+kubicle-api.workspace  = true
+mail-parser.workspace  = true
+memchr                 = "2"
+nom                    = { version = "7", default-features = false, features = [ "alloc" ] } # for imap-codec, which needs `alloc`
+rustls.workspace       = true
+thiserror.workspace    = true
+tokio                  = { workspace = true, features = [ "net", "time", "io-util" ] }
+tokio-rustls.workspace = true
+tracing.workspace      = true
+zeroize.workspace      = true
+
+[dependencies.imap-codec]
+features = [ "ext_condstore_qresync", "starttls", "ext_id", "ext_namespace" ]
+version  = "=2.0.0-alpha.9"
+
+[lints]
+workspace = true

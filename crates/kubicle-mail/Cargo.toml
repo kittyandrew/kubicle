@@ -1,0 +1,25 @@
+[package]
+name              = "kubicle-mail"
+description       = "Mail parsing and display: MIME to the message the kubicle reader shows"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+ammonia               = "4.2.4"                                           # older ones carry RustSec advisories
+axum.workspace        = true
+bytes.workspace       = true
+html2text             = { version = "=0.17.4", default-features = false }
+jiff.workspace        = true
+kubicle-api.workspace = true
+lol_html              = "=2.9.0"                                          # streaming HTML parser: the admission gate
+mail-parser.workspace = true
+percent-encoding      = "2"
+regex.workspace       = true
+thiserror.workspace   = true
+unicode-script        = "0.5"
+unicode-security      = "0.1"
+url.workspace         = true
+
+[lints]
+workspace = true

@@ -1,0 +1,10 @@
+# brace_style, fn_single_line, match_arm_blocks and where_single_line are unstable options: nightly rustfmt
+# (nix/package.nix) reads them, and stable rustfmt skips them.
+brace_style                         = "PreferSameLine"
+fn_params_layout                    = "Compressed"
+fn_single_line                      = true
+match_arm_blocks                    = false
+max_width                           = 141
+short_array_element_width_threshold = 141
+use_small_heuristics                = "Max"
+where_single_line                   = true

@@ -1,0 +1,75 @@
+/* kubicle-theme name="Catppuccin Latte" dark=false */
+/* The default light theme: Catppuccin Latte from the official palette (github.com/catppuccin/palette), mapped
+   to kubicle's tokens as frappe.css maps Frappe, so the two read as one family. Mauve is the accent; change
+   --p-accent to pick another. */
+:root {
+  color-scheme: light;
+
+  --p-rosewater: #dc8a78;
+  --p-flamingo: #dd7878;
+  --p-pink: #ea76cb;
+  --p-mauve: #8839ef;
+  --p-red: #d20f39;
+  --p-maroon: #e64553;
+  --p-peach: #fe640b;
+  --p-yellow: #df8e1d;
+  --p-green: #40a02b;
+  --p-teal: #179299;
+  --p-sky: #04a5e5;
+  --p-sapphire: #209fb5;
+  --p-blue: #1e66f5;
+  --p-lavender: #7287fd;
+  --p-text: #4c4f69;
+  --p-subtext1: #5c5f77;
+  --p-subtext0: #6c6f85;
+  --p-overlay2: #7c7f93;
+  --p-overlay1: #8c8fa1;
+  --p-overlay0: #9ca0b0;
+  --p-surface2: #acb0be;
+  --p-surface1: #bcc0cc;
+  --p-surface0: #ccd0da;
+  --p-base: #eff1f5;
+  --p-mantle: #e6e9ef;
+  --p-crust: #dce0e8;
+  --p-accent: var(--p-mauve);
+
+  --bg: var(--p-base);
+  --bg-sidebar: var(--p-crust);
+  --bg-list: var(--p-mantle);
+  --bg-header: var(--p-crust);
+  --bg-raised: var(--p-base); /* fields as light as the page, outlined by --border: surface0 read as a grey slab */
+  --bg-scrim: rgb(76 79 105 / 0.35); /* Latte's text colour: even its crust is a light grey */
+
+  --fg: var(--p-text);
+  --fg-muted: var(--p-subtext0);
+  --fg-subtle: var(--p-overlay1);
+  --fg-on-accent: var(--p-base);
+
+  --border: var(--p-surface1);
+  --border-strong: var(--p-lavender);
+  --focus-ring: var(--p-lavender);
+
+  --accent: var(--p-accent);
+  --accent-hover: color-mix(in srgb, var(--p-accent) 80%, var(--p-text));
+  --accent-soft: color-mix(in srgb, var(--p-accent) 18%, transparent);
+
+  --hover: color-mix(in srgb, var(--p-overlay2) 12%, transparent);
+  --selected: color-mix(in srgb, var(--p-overlay2) 25%, transparent);
+  --unread: var(--p-text);
+  --open-fg: var(--p-accent);
+
+  --link: var(--p-blue);
+  --danger: var(--p-red);
+  --warning: var(--p-yellow);
+  --flag: var(--p-red); /* as Elastic and Roundcube: a flag is an alert, not a hint */
+  --quote-1: var(--p-blue); /* plain-text quote levels, as Elastic colours them: blue, green, red */
+  --quote-2: var(--p-green);
+  --quote-3: var(--p-red);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+  --font-size: 14px;
+  --radius: 6px;
+  --row-height: 3.4rem;
+  --shadow: rgb(76 79 105 / 0.2);
+}

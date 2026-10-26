@@ -1,0 +1,13 @@
+[package]
+name              = "kubicle-api"
+description       = "Types the kubicle server and client exchange"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+smart-default   = "=0.7.1"
+
+[lints]
+workspace = true

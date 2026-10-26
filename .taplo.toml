@@ -1,0 +1,16 @@
+# `taplo fmt`, checked by the `toml` flake check: TOML at 141 columns, as rustfmt.toml, keys sorted within each
+# table, but a crate's [package] keeps its usual order (name and version first). Sorting leaves a comment above a
+# key behind, so a key's comment trails it, kept short: comments align past the table's longest entry.
+[formatting]
+align_entries         = true
+column_width          = 141
+compact_arrays        = false
+reorder_inline_tables = false
+reorder_keys          = true
+
+[[rule]]
+include = [ "**/Cargo.toml" ]
+keys    = [ "package" ]
+
+[rule.formatting]
+reorder_keys = false

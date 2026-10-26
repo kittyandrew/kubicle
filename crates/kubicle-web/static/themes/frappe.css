@@ -1,0 +1,75 @@
+/* kubicle-theme name="Catppuccin Frappe" dark=true */
+/* The default dark theme: Catppuccin Frappe from the official palette (github.com/catppuccin/palette), mapped
+   to kubicle's tokens by the roles in Catppuccin's style guide. Mauve is the accent; change --p-accent to
+   pick another. */
+:root {
+  color-scheme: dark;
+
+  --p-rosewater: #f2d5cf;
+  --p-flamingo: #eebebe;
+  --p-pink: #f4b8e4;
+  --p-mauve: #ca9ee6;
+  --p-red: #e78284;
+  --p-maroon: #ea999c;
+  --p-peach: #ef9f76;
+  --p-yellow: #e5c890;
+  --p-green: #a6d189;
+  --p-teal: #81c8be;
+  --p-sky: #99d1db;
+  --p-sapphire: #85c1dc;
+  --p-blue: #8caaee;
+  --p-lavender: #babbf1;
+  --p-text: #c6d0f5;
+  --p-subtext1: #b5bfe2;
+  --p-subtext0: #a5adce;
+  --p-overlay2: #949cbb;
+  --p-overlay1: #838ba7;
+  --p-overlay0: #737994;
+  --p-surface2: #626880;
+  --p-surface1: #51576d;
+  --p-surface0: #414559;
+  --p-base: #303446;
+  --p-mantle: #292c3c;
+  --p-crust: #232634;
+  --p-accent: var(--p-mauve);
+
+  --bg: var(--p-base);
+  --bg-sidebar: var(--p-crust);
+  --bg-list: var(--p-mantle);
+  --bg-header: var(--p-crust);
+  --bg-raised: var(--p-surface0);
+  --bg-scrim: rgb(35 38 52 / 0.7);
+
+  --fg: var(--p-text);
+  --fg-muted: var(--p-subtext0);
+  --fg-subtle: var(--p-overlay1);
+  --fg-on-accent: var(--p-base);
+
+  --border: var(--p-surface1);
+  --border-strong: var(--p-lavender);
+  --focus-ring: var(--p-lavender);
+
+  --accent: var(--p-accent);
+  --accent-hover: color-mix(in srgb, var(--p-accent) 80%, var(--p-text));
+  --accent-soft: color-mix(in srgb, var(--p-accent) 18%, transparent);
+
+  --hover: color-mix(in srgb, var(--p-overlay2) 12%, transparent);
+  --selected: color-mix(in srgb, var(--p-overlay2) 25%, transparent);
+  --unread: var(--p-text);
+  --open-fg: var(--p-accent);
+
+  --link: var(--p-blue);
+  --danger: var(--p-red);
+  --warning: var(--p-yellow);
+  --flag: var(--p-red); /* as Elastic and Roundcube: a flag is an alert, not a hint */
+  --quote-1: var(--p-blue); /* plain-text quote levels, as Elastic colours them: blue, green, red */
+  --quote-2: var(--p-green);
+  --quote-3: var(--p-red);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+  --font-size: 14px;
+  --radius: 6px;
+  --row-height: 3.4rem;
+  --shadow: rgb(35 38 52 / 0.5);
+}

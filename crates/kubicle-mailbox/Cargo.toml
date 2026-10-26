@@ -1,0 +1,31 @@
+[package]
+name              = "kubicle-mailbox"
+description       = "A user's mailbox for kubicle's server, without HTTP: the IMAP engine, Compose and submission, uploads and settings"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+axum.workspace         = true
+base64.workspace       = true
+bytes.workspace        = true
+futures-util.workspace = true
+getrandom              = "0.4"
+jiff.workspace         = true
+kubicle-api.workspace  = true
+kubicle-imap.workspace = true
+kubicle-mail.workspace = true
+mail-builder           = { version = "1", default-features = false }                                                        # its default puts the hostname in IDs
+mail-parser.workspace  = true
+regex.workspace        = true
+rusqlite               = { version = "0.40", features = [ "blob", "bundled" ] }
+rustls.workspace       = true
+serde_json.workspace   = true
+thiserror.workspace    = true
+tokio                  = { workspace = true, features = [ "macros", "rt-multi-thread", "net", "time", "sync", "io-util" ] }
+tokio-rustls.workspace = true
+tracing.workspace      = true
+zeroize.workspace      = true
+
+[lints]
+workspace = true

@@ -1,0 +1,31 @@
+[package]
+name              = "kubicle-browser"
+description       = "The kubicle client's browser helpers: requests to the server, text and dates"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+js-sys.workspace = true
+kubicle-api.workspace = true
+leptos.workspace = true
+serde.workspace = true
+serde-wasm-bindgen = "0.6" # the browser's JSON.parse and stringify, so no JSON code ships in the wasm
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true
+web-sys = { workspace = true, features = [
+  "AbortSignal",
+  "File",
+  "FormData",
+  "Headers",
+  "ProgressEvent",
+  "RequestInit",
+  "Response",
+  "Storage",
+  "XmlHttpRequest",
+  "XmlHttpRequestEventTarget",
+  "XmlHttpRequestUpload",
+] }
+
+[lints]
+workspace = true

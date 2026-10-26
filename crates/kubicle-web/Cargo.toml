@@ -1,0 +1,48 @@
+[package]
+name              = "kubicle-web"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+js-sys.workspace = true
+kubicle-api.workspace = true
+kubicle-browser.workspace = true
+kubicle-ui.workspace = true
+leptos.workspace = true
+serde.workspace = true
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true
+web-sys = { workspace = true, features = [
+  "AbortController",
+  "AbortSignal",
+  "Blob",
+  "Clipboard",
+  "ClipboardEvent",
+  "DataTransfer",
+  "DomRect",
+  "DragEvent",
+  "EventSource",
+  "File",
+  "FileList",
+  "Headers",
+  "History",
+  "HtmlLinkElement",
+  "HtmlMetaElement",
+  "HtmlTextAreaElement",
+  "KeyboardEvent",
+  "Location",
+  "MediaQueryList",
+  "MessageEvent",
+  "MouseEvent",
+  "Navigator",
+  "NodeList",
+  "ResizeObserver",
+  "ScrollBehavior",
+  "ScrollIntoViewOptions",
+  "ScrollLogicalPosition",
+  "Storage",
+] }
+
+[lints]
+workspace = true

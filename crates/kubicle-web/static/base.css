@@ -1,0 +1,612 @@
+/* kubicle's layout and components. Every colour, font and radius comes from the tokens a theme sets on :root
+   (themes/latte.css lists them all); this file never names a colour itself. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* The rows that line up across the columns, as in Elastic (variables.less, @layout-header-height): every column's
+   header and footer, then the second row of the folder and list columns (Compose, the search field). */
+:root {
+  --bar-height: round(down, 4.2 * var(--font-size), 1px);
+  --second-row-height: round(down, 3.6 * var(--font-size), 1px);
+  --folder-icon-gap: 0.35rem; /* half the usual gap, so folder names fit the narrow column */
+  --status-width: 1.1rem; /* the status mark's column before the subject, which the sender lines up with */
+}
+
+html, body { height: 100%; margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: var(--font-size)/1.45 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--link); }
+h1, h2 { margin: 0; font-weight: 600; }
+kbd { font: 0.85em var(--font-mono); padding: 0.1em 0.4em; border: 1px solid var(--border); border-radius: 4px; }
+
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.grow { flex: 1 1 auto; min-width: 0; }
+.muted { color: var(--fg-muted); }
+.small { font-size: 0.86em; }
+.flip { display: inline-flex; transform: scaleX(-1); }
+
+.icon {
+  width: 1.25em; height: 1.25em; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
+}
+
+.button, .icon-button, .tool, .menu-item {
+  display: inline-flex; align-items: center; gap: 0.4em;
+  border: 0; background: none; cursor: pointer; white-space: nowrap;
+}
+.button {
+  height: 2.25rem; padding: 0 0.9rem;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+.button:hover { background: var(--hover); }
+.button.primary { background: var(--accent); border-color: var(--accent); color: var(--fg-on-accent); font-weight: 600; }
+.button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.button:disabled, .button[aria-disabled="true"] { opacity: 0.55; cursor: default; }
+
+.icon-button {
+  justify-content: center; width: 2.25rem; height: 2.25rem; flex: none;
+  border-radius: var(--radius); color: var(--fg-muted);
+}
+.icon-button:hover:not(:disabled) { background: var(--hover); color: var(--fg); }
+.icon-button:disabled { opacity: 0.4; cursor: default; }
+.icon-button.danger:hover { color: var(--danger); }
+
+.input {
+  height: 2.25rem; padding: 0 0.65rem; min-width: 0;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+textarea.input { height: auto; padding: 0.5rem 0.65rem; resize: vertical; }
+.input:focus { outline: none; border-color: var(--border-strong); box-shadow: 0 0 0 1px var(--border-strong); }
+.input.narrow { width: 6rem; }
+.input.code { width: 100%; font: 0.85rem/1.5 var(--font-mono); }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); margin: 0; }
+/* Elastic's switches for on/off options (settings, compose options, search fields), drawn on the checkbox itself;
+   the list's row checkboxes stay boxes. */
+:is(.setting, .option, .search-field, .plain-row) > input[type="checkbox"] {
+  appearance: none; position: relative; flex: none; width: 2.1rem; height: 1.2rem; border-radius: 999px;
+  background: var(--fg-subtle); cursor: pointer; transition: background 0.15s; /* off reads grey, on the accent */
+}
+:is(.setting, .option, .search-field, .plain-row) > input[type="checkbox"]::before {
+  content: ""; position: absolute; top: 0.15rem; left: 0.15rem; width: 0.9rem; height: 0.9rem; border-radius: 50%;
+  background: var(--bg-raised); transition: translate 0.15s;
+}
+:is(.setting, .option, .search-field, .plain-row) > input[type="checkbox"]:checked { background: var(--accent); }
+:is(.setting, .option, .search-field, .plain-row) > input[type="checkbox"]:checked::before { translate: 0.9rem; }
+:is(.setting, .option, .search-field, .plain-row) > input[type="checkbox"]:disabled { opacity: 0.45; cursor: default; }
+
+/* The columns size as Roundcube Elastic's (skins/elastic/styles/layout.less). Compose and settings take the list's
+   and the reader's place. */
+.app { display: flex; height: 100vh; height: 100dvh; }
+.app > * { min-width: 0; }
+.app > .folders { flex: 2; max-width: 30%; min-width: 220px; }
+.app > .list-pane { flex: 3; max-width: 30%; min-width: 300px; }
+.app > .reader { flex: 6; }
+.app > .compose, .app > .settings { flex: 9; }
+.app.loading .list-pane, .app.loading .reader { visibility: hidden; }
+
+.bar {
+  display: flex; align-items: center; gap: 0.25rem;
+  height: var(--bar-height); padding: 0 0.5rem 0 0.75rem; flex: none;
+  background: var(--bg-header); border-bottom: 1px solid var(--border);
+}
+.bar-title { font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folders > .bar, .list-pane > .bar { justify-content: center; padding: 0 0.5rem; } /* as Elastic centers these two headers */
+.list-pane .bar-title { display: none; } /* the folder column names the folder; a phone hides that column */
+.list-tools { display: flex; align-items: center; gap: 0.25rem; }
+
+.folders {
+  display: flex; flex-direction: column; min-height: 0;
+  background: var(--bg-sidebar); border-right: 1px solid var(--border);
+}
+.folders-top, .list-search {
+  flex: none; height: var(--second-row-height); display: flex; align-items: center; padding: 0 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+.compose-button { flex: 1; justify-content: center; }
+/* Centred in the room the folder actions leave, so a 220 px column still shows a 20 character address whole. */
+.account {
+  flex: 1; min-width: 0; font-weight: 600; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.folders > .bar { position: relative; padding: 0 2.6rem 0 0.5rem; }
+.bar-end { position: absolute; right: 0.25rem; top: 0; bottom: 0; display: flex; align-items: center; }
+.bar-end .tool { min-width: 2.25rem; padding: 0; }
+.folder-list { list-style: none; margin: 0; padding: 0.25rem 0; overflow-y: auto; flex: 1; }
+.folder-list li { position: relative; }
+.folder {
+  display: flex; align-items: center; gap: var(--folder-icon-gap); width: 100%;
+  padding: 0.25rem 0.75rem 0.25rem calc(1.4rem + var(--depth, 0) * 1.1rem);
+  border: 0; border-left: 3px solid transparent; background: none; cursor: pointer; text-align: left;
+  color: var(--fg);
+}
+.folder .icon { color: var(--fg-muted); }
+.folder:hover { background: var(--hover); }
+.folder.active { background: var(--accent-soft); border-left-color: var(--accent); font-weight: 600; }
+.folder.active .icon { color: var(--accent); }
+.folder.drop { background: var(--accent-soft); outline: 2px dashed var(--accent); outline-offset: -3px; }
+.folder.noselect { cursor: default; color: var(--fg-muted); }
+.folder.unread .folder-name { font-weight: 700; }
+.folder.recent .folder-name { color: var(--accent); } /* new mail since last opened, as Elastic's .recent */
+/* Left of the folder's icon, in the room every row keeps for it, as in Roundcube. */
+.folder-twisty { position: absolute; left: calc(0.25rem + var(--depth, 0) * 1.1rem); top: 50%; translate: 0 -50%; }
+.folder-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge {
+  flex: none; min-width: 1.5rem; padding: 0 0.45rem; border-radius: 999px;
+  background: var(--accent); color: var(--fg-on-accent);
+  font-size: 0.78rem; font-weight: 600; line-height: 1.25rem; text-align: center;
+}
+/* Elastic's quota widget above the folder column's footer: a disk, a bar and its percent, red from 90%. */
+.quota { display: flex; align-items: center; gap: 0.5rem; flex: none; padding: 0.4rem 0.9rem; color: var(--fg-muted); font-size: 0.8rem; }
+.quota-bar { flex: 1; height: 0.4rem; border-radius: 999px; background: var(--hover); overflow: hidden; }
+.quota-value { display: block; height: 100%; background: var(--accent); }
+.quota.warning .quota-value { background: var(--danger); }
+.folders-bottom {
+  display: flex; align-items: center; justify-content: center; gap: 0.1rem; flex: none;
+  height: var(--bar-height); padding: 0 0.25rem; border-top: 1px solid var(--border);
+}
+.folders-bottom .tool { min-width: 0; padding: 0 0.3rem; }
+
+.list-pane {
+  display: flex; flex-direction: column; min-height: 0; position: relative;
+  background: var(--bg-list); border-right: 1px solid var(--border);
+}
+.searchbar {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.4rem; padding-left: 0.65rem;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-raised); color: var(--fg-muted);
+}
+.list-search { position: relative; }
+.search-options { left: 0.6rem; right: 0.6rem; min-width: 0; padding: 0.5rem 0.75rem; }
+.search-field { display: flex; align-items: center; gap: 0.5rem; padding: 0.15rem 0 0.15rem calc(var(--depth, 0) * 1.25rem); }
+.search-options .setting { margin-top: 0.35rem; }
+.searchbar:focus-within { border-color: var(--border-strong); box-shadow: 0 0 0 1px var(--border-strong); }
+.search-input { flex: 1; min-width: 0; height: 2.15rem; border: 0; background: none; color: var(--fg); outline: none; }
+/* Chromium's own clear button emptied the text and left the type and date: the reset button does it whole. */
+.search-input::-webkit-search-cancel-button { display: none; }
+.searchbar .tool { padding: 0 0.5rem; height: 2.15rem; min-width: 0; }
+
+.list { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
+.list:focus-visible { outline: none; } /* the focused row marks where the keys act, as in Roundcube */
+.row {
+  display: flex; align-items: stretch;
+  min-height: var(--row-height); padding: 0 0 0 calc(2px + var(--depth, 0) * 1rem);
+  border-bottom: 1px solid var(--border); border-left: 2px solid transparent;
+  cursor: default; user-select: none;
+  content-visibility: auto; contain-intrinsic-size: auto var(--row-height); /* rows below the fold skip layout */
+}
+.row:hover { background: var(--hover); }
+.row.selected { background: var(--selected); }
+.row.open { background: var(--accent-soft); border-left-color: var(--accent); }
+.row.focused:not(.open) { border-left-color: var(--focus-ring); } /* Elastic's focus bar on a row the keys moved to */
+.row-check { flex: none; display: flex; align-items: center; height: 1.8em; padding-right: 0.3rem; }
+.row-thread { width: 1.1rem; flex: none; display: flex; align-items: center; height: 1.8em; }
+.list:not(.threads) .row-thread { display: none; } /* the twisty's column only where threads are on */
+.twisty { display: inline-flex; padding: 0; border: 0; background: none; color: var(--fg-muted); cursor: pointer; }
+.twisty .icon { width: 1rem; height: 1rem; transition: transform 0.1s; }
+.twisty.expanded .icon { transform: rotate(90deg); }
+.row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+/* Roundcube's row: the sender with the date (the size on hover) on line 1; the status mark and the subject on
+   line 2; the flag and the attachment mark stacked in their own cell at the right. Line 1 is two of its 0.9em
+   letters tall and line 2 takes the rest, as Elastic's 2em line heights do. */
+.row-line { display: flex; align-items: center; gap: 0.4rem; min-width: 0; height: 1.8em; }
+.row-line + .row-line { height: auto; flex: 1; }
+.row-from, .row-subject { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-from { /* starts at the subject's left edge, past the status mark and the line's gap */
+  color: var(--fg-muted); font-size: 0.9em; padding-left: calc(var(--status-width) + 0.4rem);
+}
+.row.unread .row-subject { font-weight: 700; color: var(--unread); }
+.row.open .row-subject { color: var(--open-fg); }
+.row.unroot .row-subject { text-decoration: underline; }
+.row.flagged .row-from, .row.flagged .row-subject, .row.flagged .row-date, .row.flagged .row-size { color: var(--flag); }
+.row-status {
+  position: relative; flex: none; width: var(--status-width); display: inline-flex; align-items: center;
+  padding: 0; border: 0; background: none; color: var(--fg-muted); cursor: pointer;
+}
+.row-status.read::before { /* as Elastic marks a read message */
+  content: ""; width: 0.25rem; height: 0.25rem; margin-left: 0.3rem; border-radius: 50%; background: currentColor;
+}
+.row-status .icon { width: 1rem; height: 1rem; }
+.row-status.replied.forwarded .icon + .icon { position: absolute; left: 0.25rem; opacity: 0.5; }
+.row-status.unread::before, .row-status.unreadchildren::before {
+  content: ""; width: 0.45rem; height: 0.45rem; margin-left: 0.2rem; border-radius: 50%; background: var(--accent);
+}
+.row-status.unreadchildren::before { background: none; border: 1.5px solid var(--accent); }
+.row-folder {
+  flex: none; max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 0 0.4rem; border-radius: 4px; background: var(--hover); color: var(--fg-muted); font-size: 0.78em;
+}
+.row-date, .row-size { flex: none; color: var(--fg-muted); font-size: 0.9em; font-variant-numeric: tabular-nums; }
+.row-size, .row:hover .row-date, .list.sort-size .row-date { display: none; }
+.row:hover .row-size, .list.sort-size .row-size { display: inline; }
+.list.sort-size .row:hover .row-date { display: inline; }
+.list.sort-size .row:hover .row-size { display: none; }
+.replies {
+  flex: none; padding: 0 0.4rem; border-radius: 999px; border: 1px solid var(--border);
+  color: var(--fg-muted); font-size: 0.75em; line-height: 1.2rem;
+}
+.row-flags { flex: none; width: 2.5em; display: grid; grid-template-rows: 1.8em 1fr; place-items: center; } /* one mark per line */
+.row-flag, .row-attached { display: inline-flex; color: var(--fg-subtle); }
+.row-flag { padding: 0; border: 0; background: none; cursor: pointer; opacity: 0; }
+.row-flag .icon, .row-attached .icon { width: 1rem; height: 1rem; }
+.row:hover .row-flag, .row-flag:focus-visible, .row.flaggedroot .row-flag { opacity: 1; }
+.row-flag.on { opacity: 1; color: var(--flag); }
+.row-flag.on .icon, .row.flaggedroot:not(:hover) .row-flag .icon { fill: currentColor; }
+.empty { margin: 2.5rem 1rem; text-align: center; color: var(--fg-muted); }
+.paging {
+  display: flex; align-items: center; justify-content: center; gap: 0.1rem; flex: none;
+  height: var(--bar-height); padding: 0 0.25rem; border-top: 1px solid var(--border); background: var(--bg-header);
+}
+.paging > .muted { margin: 0 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.paging .icon-button { width: 1.5rem; } /* Elastic's narrow footer, which leaves the count room */
+/* The count's size, in a box as tall as the count's line plus a little, so the two sit level. */
+.page-box {
+  height: 1.3rem; padding: 0 0.3rem; flex: none; font-size: 0.86em; line-height: 1;
+  text-align: center; font-variant-numeric: tabular-nums;
+}
+
+.reader { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); }
+.toolbar { gap: 0.1rem; padding-left: 0.4rem; justify-content: center; } /* the buttons and More centred, as in Elastic */
+/* One line of buttons; those that wrap to the second stay hidden and show in More (reader.rs, Toolbar). */
+.tools {
+  position: relative; flex: 0 1 auto; min-width: 0; height: 3rem;
+  display: flex; flex-wrap: wrap; align-items: center; align-content: flex-start; gap: 0.1rem;
+}
+.tools > .wrapped { visibility: hidden; }
+.tool {
+  flex-direction: column; justify-content: center; gap: 0.1rem;
+  min-width: 3.6rem; height: 3rem; padding: 0 0.35rem;
+  border-radius: var(--radius); color: var(--fg);
+}
+.tool .icon { color: var(--fg-muted); width: 1.3rem; height: 1.3rem; }
+.tool-label { font-size: 0.72rem; color: var(--fg-muted); }
+.tool:hover:not(:disabled) { background: var(--hover); }
+.tool:hover:not(:disabled) .icon { color: var(--accent); }
+.tool.logout .icon, .tool.logout .tool-label, .tool.logout:hover .icon { color: var(--danger); }
+.tool:disabled { opacity: 0.4; cursor: default; }
+.tool.on .icon { color: var(--accent); fill: currentColor; }
+.tool.unread.selected .icon { color: var(--accent); }
+.theme-pick { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.theme-pick:hover { text-decoration: underline; }
+.tool-sep { width: 1px; align-self: stretch; margin: 0.6rem 0.25rem; background: var(--border); flex: none; }
+/* Roundcube's split button: the action, and a narrow arrow beside it that opens its menu. */
+.split { display: inline-flex; }
+.split .split-menu { min-width: 0; padding: 0 0.2rem; }
+.split .split-menu .icon { width: 1rem; height: 1rem; }
+
+.reader-empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;
+  color: var(--fg-subtle);
+}
+.reader-empty .icon { width: 3.5rem; height: 3.5rem; stroke-width: 1; }
+
+.message { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+.message-header { padding: 0.75rem 1.25rem 0.6rem; border-bottom: 1px solid var(--border); }
+.subject-line { display: flex; align-items: flex-start; gap: 0.25rem; margin-bottom: 0.4rem; }
+.subject-line .icon-button { width: 1.75rem; height: 1.75rem; }
+.message-subject { flex: 1; font-size: 1.1rem; line-height: 1.25; padding-top: 0.15rem; overflow-wrap: anywhere; }
+.message-meta { display: flex; gap: 0.6rem; align-items: center; }
+.avatar { /* as tall as the two lines beside it */
+  flex: none; display: grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent); font-weight: 700;
+}
+.header-lines { flex: 1; min-width: 0; line-height: 1.2rem; }
+.summary { overflow-wrap: anywhere; }
+.summary .link { font-weight: 600; }
+.header-links { display: flex; gap: 0.9rem; font-size: 0.86em; }
+.header-links .link { display: inline-flex; align-items: center; gap: 0.25rem; } /* Elastic's icon before each */
+.header-links .icon { width: 1.1em; height: 1.1em; }
+.link { padding: 0; border: 0; background: none; color: var(--link); cursor: pointer; }
+.link:hover { text-decoration: underline; }
+.details { margin-top: 0.5rem; border-collapse: collapse; font-size: 0.9em; }
+.details th { padding: 0.1rem 1rem 0.1rem 0; color: var(--fg-muted); font-weight: normal; text-align: left; vertical-align: top; }
+.details td { overflow-wrap: anywhere; }
+
+.notice { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 1.25rem 0; font-size: 0.86em; }
+.notice > .icon { color: var(--warning); }
+.notice.danger, .notice.danger > .icon { color: var(--danger); font-weight: 600; } /* the From may be forged */
+/* The warning's colour, not the accent's: these lift a privacy guard. The text leans to --fg for contrast on
+   light themes. */
+.notice > .link { padding: 0.15rem 0.6rem; border-radius: var(--radius); background: color-mix(in srgb, var(--warning) 18%, transparent); color: color-mix(in srgb, var(--warning) 75%, var(--fg)); font-weight: 600; }
+.notice.images { flex-wrap: nowrap; } /* on one line: the address in it gives way instead (.trust) */
+.notice.images > :not(.trust) { flex: none; }
+.notice > .trust { display: inline-flex; min-width: 0; white-space: pre; }
+.trust-local { min-width: 3ch; overflow: hidden; text-overflow: ellipsis; }
+.notice > .link:hover { background: color-mix(in srgb, var(--warning) 32%, transparent); text-decoration: none; }
+:is(.dialog-body, .compose-form) > .notice { margin: 0; } /* the reader's margin lines it up with the mail; here the form does */
+
+.attachments { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.75rem 1.25rem 0; }
+.attachments:empty { display: none; }
+.preview {
+  display: flex; flex-direction: column; gap: 0.25rem; width: 9rem; padding: 0.35rem; cursor: pointer; text-align: left;
+  border: 1px solid var(--border); border-radius: var(--radius); color: var(--fg); background: var(--bg-raised);
+}
+.preview img { width: 100%; height: 6.5rem; object-fit: cover; border-radius: calc(var(--radius) - 2px); background: var(--hover); }
+.preview .chip-name { font-size: 0.78em; }
+.chip {
+  display: inline-flex; align-items: center; gap: 0.4rem; max-width: 100%; height: 2.25rem; padding: 0 0.65rem;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-raised);
+  color: var(--fg); text-decoration: none;
+}
+button.chip { cursor: pointer; }
+button.chip:hover, .preview:hover { border-color: var(--border-strong); }
+.chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The frame scrolls on its own and fills what the headers leave (reader.rs says why). Its canvas stays
+   transparent, so the pane shows below the mail's paper; the frame's color-scheme must equal the document's,
+   or browsers paint an opaque backdrop behind it. */
+.mail-frame { flex: 1 0 24rem; display: flex; margin: 0.5rem 1.25rem 0; } /* the paper in line with the header, as in Elastic */
+.mail-frame iframe { flex: 1; width: 100%; border: 0; color-scheme: light; background: transparent; }
+.mail-frame iframe.text { color-scheme: inherit; } /* the theme's, which theme.rs's `paper` gives text mail */
+.subject-line .flagged { display: inline-flex; padding-top: 0.2rem; color: var(--flag); }
+.subject-line .flagged .icon { fill: currentColor; }
+
+.compose { display: flex; flex-direction: column; min-height: 0; background: var(--bg); }
+.compose-tools { display: flex; align-items: center; gap: 0.1rem; flex: 1; justify-content: center; }
+.compose-status { position: absolute; right: 1rem; }
+.compose .bar { position: relative; }
+/* Roundcube's compose: the form, and "Options and attachments" in a column on its right. */
+.compose-main { flex: 1; display: flex; min-height: 0; }
+.compose-form { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 0.75rem 1.25rem 1rem; gap: 0.75rem; overflow-y: auto; }
+.compose-fields { display: flex; flex-direction: column; gap: 0.4rem; }
+.field, .field-line { display: flex; align-items: center; gap: 0.75rem; }
+.field-line > .field { flex: 1; min-width: 0; }
+.field-label { flex: none; width: 5.5rem; color: var(--fg-muted); font-size: 0.9em; }
+.field > .input, .suggest { flex: 1; min-width: 0; }
+.field-adds { flex: none; width: 2rem; display: flex; justify-content: center; } /* in every row, so the inputs share one right edge */
+.compose-fields .input, .field-adds .icon-button { height: 2rem; }
+.field-adds .icon-button { width: 2rem; }
+.suggest { position: relative; display: flex; }
+.suggest > .input { flex: 1; }
+.suggest-list { top: calc(100% + 2px); left: 0; right: 0; }
+.compose-body.input { flex: 1; min-height: 14rem; height: auto; padding: 0.75rem 0.9rem; resize: none; font: 0.95rem/1.55 var(--font-mono); }
+.compose-send { display: flex; align-items: center; }
+/* Compose's fields while it sends (Roundcube's `lock_form`): the fieldset draws no box, and no pointer reaches what
+   `disabled` leaves working, the chips' drag and double click and the drop zone. */
+.compose-lock { display: contents; }
+.compose-lock:disabled { pointer-events: none; }
+/* Elastic's recipient input: a chip per address, the name shown, then the text being typed. */
+.recipient-input {
+  flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; margin: 0; list-style: none;
+  padding: 0.15rem 0.35rem; cursor: text;
+}
+.compose-fields .recipient-input, .recipient-input { height: auto; min-height: 2rem; }
+.recipient-input:focus-within { border-color: var(--border-strong); box-shadow: 0 0 0 1px var(--border-strong); }
+.recipient {
+  display: inline-flex; align-items: center; gap: 0.15rem; max-width: 100%; padding: 0 0.1rem 0 0.45rem;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--hover); font-size: 0.9em; cursor: grab;
+}
+.recipient-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recipient-remove { display: inline-flex; padding: 0.1rem; border: 0; background: none; color: var(--fg-muted); cursor: pointer; }
+.recipient-remove:hover { color: var(--danger); }
+.recipient-remove .icon { width: 0.85rem; height: 0.85rem; }
+.recipient-typed { flex: 1; min-width: 6rem; display: flex; }
+.recipient-typed input { flex: 1; min-width: 0; height: 1.6rem; border: 0; background: none; color: var(--fg); font: inherit; outline: none; }
+.compose-side {
+  flex: none; width: 19.5rem; display: flex; flex-direction: column; gap: 0.6rem; overflow-y: auto; /* fits "Save sent message in" */
+  padding: 0 1rem 1rem; border-left: 1px solid var(--border); background: var(--bg-list);
+}
+.side-title { margin: 0 -1rem; padding: 0 1rem; height: var(--bar-height); display: flex; align-items: center; justify-content: center; font-size: 0.95rem; border-bottom: 1px solid var(--border); }
+.dropzone {
+  min-height: 14rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1rem 0.75rem; text-align: center;
+  border: 2px dashed var(--border-strong); border-radius: var(--radius);
+}
+.dropzone.over { border-color: var(--accent); background: var(--hover); }
+.dropzone p { margin: 0; }
+.dropzone-icon { flex: 1; display: flex; align-items: center; color: var(--fg-subtle); }
+.dropzone-icon .icon { width: 4rem; height: 4rem; }
+.attachment-list { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 0.25rem; }
+.attachment-item { display: flex; align-items: center; gap: 0.4rem; text-align: left; }
+.attachment-item .chip-name { flex: 1; min-width: 0; }
+.attachment-item > .dropdown { flex: 1; min-width: 0; display: flex; }
+.attachment-menu { flex: 1; min-width: 0; border: 0; background: none; text-align: left; } /* the file's menu, shown as its name */
+.attachment-item.uploading .chip-name { color: var(--fg-muted); }
+/* Sized as the settings' rows (.setting): a switch row and a dropdown row take the same room. */
+.option { min-height: 1.75rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.option > select.input { width: auto; min-width: 6.5rem; max-width: 7.5rem; height: 1.75rem; }
+
+.settings { display: flex; flex-direction: column; min-height: 0; background: var(--bg-list); }
+.settings-main { flex: 1; display: flex; align-items: flex-start; min-height: 0; overflow-y: auto; }
+.settings-nav {
+  position: sticky; top: 0; z-index: 1; flex: none; width: 11rem; display: flex; flex-direction: column; gap: 0.1rem;
+  padding: 1.25rem 0 0 0.75rem; background: var(--bg-list);
+}
+.settings-link {
+  padding: 0.4rem 0.6rem; border: 0; border-radius: var(--radius); background: none; color: var(--fg-muted);
+  text-align: left; white-space: nowrap; cursor: pointer;
+}
+.settings-link:hover { background: var(--hover); }
+.settings-link.active { background: var(--accent-soft); color: var(--fg); font-weight: 600; }
+.settings-body { /* the bottom padding lets the last section scroll to the top too */
+  flex: 1; position: relative; padding: 1.25rem 1.25rem calc(100dvh - 12rem);
+  display: grid; gap: 1rem; align-content: start;
+}
+.card {
+  width: 100%; max-width: 44rem; display: flex; flex-direction: column; gap: 0.75rem; padding: 1.1rem 1.25rem;
+  border: 1px solid var(--border); border-radius: calc(var(--radius) * 1.5); background: var(--bg);
+  scroll-margin-top: 1.25rem;
+}
+.card h2 { font-size: 1.05rem; }
+.card.flash { animation: card-flash 1.6s ease-out; } /* held while a smooth scroll brings it in */
+@keyframes card-flash { 0%, 40% { background: color-mix(in srgb, var(--fg) 18%, var(--bg)); border-color: var(--fg-muted); } }
+@media (prefers-reduced-motion: reduce) { .card.flash { animation: none; } }
+.card p { margin: 0; }
+/* Every row as tall as its compact controls, so a switch row and a dropdown row take the same room. */
+.setting { min-height: 1.75rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.setting > .input { min-width: 14rem; height: 1.75rem; }
+.setting .segment span { padding: 0.15rem 0.85rem; }
+.segments { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.segment { position: relative; }
+.segment input { position: absolute; opacity: 0; }
+.segment span { display: block; padding: 0.4rem 1rem; cursor: pointer; }
+.segment + .segment span { border-left: 1px solid var(--border); }
+.segment input:checked + span { background: var(--accent); color: var(--fg-on-accent); }
+.segment input:focus-visible + span { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.plain-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: var(--radius); }
+.plain-list:empty { display: none; }
+.plain-row {
+  display: flex; align-items: center; gap: 0.6rem; min-height: 2.6rem;
+  padding: 0.2rem 0.75rem 0.2rem calc(0.75rem + var(--depth, 0) * 1.1rem);
+}
+.plain-row + .plain-row { border-top: 1px solid var(--border); }
+.plain-row > .icon { color: var(--fg-muted); }
+.folder-size { min-width: 4.5rem; text-align: right; }
+.choices { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.45rem; }
+.choices label { display: flex; align-items: center; gap: 0.5rem; }
+.row-actions { display: flex; align-items: center; gap: 0.5rem; }
+
+.dropdown { position: relative; display: inline-flex; }
+.backdrop { position: fixed; inset: 0; z-index: 20; }
+.menu {
+  position: absolute; z-index: 21; top: calc(100% + 4px); left: 0; min-width: 13rem; max-height: 70vh; overflow-y: auto;
+  margin: 0; padding: 0.3rem; list-style: none;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-raised);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+/* menu.rs's popovers: below their button's left edge, or right edge, else flipped to stay in the viewport. The
+   button anchors its menu as the popover's source; a context menu anchors at the point. */
+.menu[popover] {
+  position: fixed; inset: auto; margin: 4px 0; color: inherit;
+  position-area: bottom span-right; position-try-fallbacks: flip-block, flip-inline;
+}
+.menu.right[popover] { position-area: bottom span-left; }
+.menu.context[popover] { position-anchor: --menu-point; position-area: bottom right; margin: 0; }
+.menu-point { position: fixed; anchor-name: --menu-point; }
+.menu[role="menu"] { display: grid; } /* each entry as wide as the widest, the menu as wide as its content */
+.menu-item kbd { margin-left: 1.5rem; font-size: 0.75em; }
+.menu-item {
+  padding: 0.4rem 0.6rem 0.4rem calc(0.6rem + var(--depth, 0) * 1rem);
+  border-radius: calc(var(--radius) - 2px); text-align: left; color: var(--fg);
+}
+.menu-item .icon { color: var(--fg-muted); }
+.menu-item:hover:not([aria-disabled]), .menu-item:focus-visible, .menu-item.active { background: var(--accent); color: var(--fg-on-accent); }
+.menu-item:hover:not([aria-disabled]) .icon, .menu-item:focus-visible .icon, .menu-item.active .icon, .menu-item.active .muted { color: var(--fg-on-accent); }
+.menu-item[aria-disabled] { opacity: 0.45; cursor: default; }
+.menu-lead { display: inline-flex; width: 1.1rem; flex: none; }
+[aria-expanded="true"].tool, [aria-expanded="true"].icon-button { background: var(--hover); } /* pressed while its menu is open */
+.menu-sep { height: 1px; margin: 0.3rem 0; background: var(--border); }
+.suggest-list .menu-item { display: flex; justify-content: space-between; cursor: pointer; }
+.picker { display: grid; gap: 0.5rem; padding: 0 1.1rem 1rem; }
+.picker-list { position: static; max-height: min(24rem, 50vh); }
+.picker-list .menu-item { display: flex; cursor: pointer; }
+.picker-list .menu-item .muted { margin-left: auto; padding-left: 1rem; }
+
+.dialog::backdrop { background: var(--bg-scrim); }
+.dialog {
+  display: flex; flex-direction: column; padding: 0; color: inherit;
+  width: min(40rem, calc(100vw - 2rem)); max-height: calc(100dvh - 4rem); overflow: auto;
+  min-width: 16rem; min-height: 8rem; /* dialog.rs `MIN`: the smallest box a resize leaves */
+  border: 1px solid var(--border); border-radius: calc(var(--radius) * 1.5); background: var(--bg-raised);
+  box-shadow: 0 16px 48px var(--shadow);
+}
+.dialog-head { order: -1; cursor: move; display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.6rem 0.6rem 1.1rem; border-bottom: 1px solid var(--border); }
+.dialog-head h2 { font-size: 1.05rem; }
+.dialog.narrow { width: min(26rem, calc(100vw - 2rem)); }
+.dialog:has(.suggest-list) { overflow: visible; } /* address suggestions overlay the dialog rather than scroll it */
+.dialog-body { display: grid; gap: 0.6rem; padding: 0.9rem 1.1rem; }
+.dialog-buttons { display: flex; justify-content: flex-end; gap: 0.5rem; padding: 0 1.1rem 1rem; }
+.raw-headers { padding: 0.75rem 1.1rem 1rem; font: 0.8rem/1.45 var(--font-mono); white-space: nowrap; overflow-x: auto; }
+.keys { border-collapse: collapse; margin: 0.5rem 1.1rem 1rem; width: calc(100% - 2.2rem); }
+.keys td { padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--border); }
+.keys td:first-child { white-space: nowrap; width: 11rem; }
+
+.toast {
+  position: fixed; inset: auto; margin: 0; border: 0; left: 50%; bottom: 1.5rem; transform: translateX(-50%);
+  max-width: calc(100vw - 2rem); padding: 0.65rem 1rem; border-radius: var(--radius);
+  background: var(--fg); color: var(--bg); box-shadow: 0 8px 24px var(--shadow);
+}
+/* Roundcube's session notice stays until the sign-in, at the top so the toasts below it still show. */
+.toast.signed-out { bottom: auto; top: 1.5rem; display: flex; align-items: center; gap: 0.75rem; }
+
+.fab { /* Elastic's floating Compose: 56 px, 14 px from the right edge and from the footer above the bottom */
+  position: absolute; right: 0.875rem; bottom: calc(var(--bar-height) + 0.875rem); z-index: 5;
+  width: 3.5rem; height: 3.5rem; border: 0; border-radius: 50%; cursor: pointer;
+  display: grid; place-items: center; background: var(--accent); color: var(--fg-on-accent);
+  box-shadow: 0 6px 18px var(--shadow);
+}
+.fab .icon { width: 1.5rem; height: 1.5rem; }
+
+/* Elastic's screen modes (skins/elastic/ui.js, screen_mode): large above 1200 px shows every column; normal, from
+   769 to 1200 px, hides the folder column, which the list header's Folders button shows in the list's place until
+   a folder is picked; small, at 768 px and below, shows one pane at a time. */
+@media (max-width: 1200px) {
+  .compose-side { width: 15rem; }
+  .app > .folders, .app > .list-pane { flex: 3; min-width: 260px; }
+}
+@media (min-width: 769px) and (max-width: 1200px) {
+  .app:not([data-pane="folders"]) > .folders, .app[data-pane="folders"] > .list-pane { display: none; }
+  .list-pane .bar { justify-content: flex-start; }
+  .list-pane .bar-title { display: block; text-align: center; }
+  .list-tools { display: none; } /* folded into the list actions menu */
+}
+
+/* A phone shows one pane; data-pane on .app names it. */
+@media (max-width: 768px) {
+  .app > .folders, .app > .list-pane { flex: 1; max-width: none; min-width: 0; }
+  .app[data-pane="folders"] > :not(.folders),
+  .app[data-pane="list"] > :not(.list-pane),
+  .app[data-pane="reader"] > :not(.reader, .compose, .settings) { display: none; }
+  .app[data-pane="folders"] > .folders { display: flex; }
+  .list-pane > .bar { justify-content: flex-start; }
+  .list-pane .bar-title { display: block; text-align: center; }
+  .folders, .list-pane { border-right: 0; }
+  .folder { padding-top: 0.7rem; padding-bottom: 0.7rem; }
+  .row:hover .row-flag:not(.on) { opacity: 0; }
+  .mail-frame { flex-basis: 70vh; margin: 0.5rem 1rem 0; }
+  .list { padding-bottom: 4.5rem; } /* the last rows scroll clear of the floating Compose */
+  .message-header { padding-left: 1rem; padding-right: 1rem; }
+  .compose-main { flex-direction: column; overflow-y: auto; }
+  .compose-side { width: auto; border-left: 0; border-top: 1px solid var(--border); }
+  .compose-form { padding: 0.5rem 1rem; overflow: visible; }
+  .field-label { width: 3.6rem; }
+  .settings-body { padding: 0.75rem; }
+  .settings-main { flex-direction: column; align-items: stretch; }
+  .settings-nav { flex-direction: row; width: auto; overflow-x: auto; padding: 0.5rem 0.75rem; }
+  .card { scroll-margin-top: 3.5rem; } /* below the nav held at the top */
+}
+
+/* Roundcube's message view in the tab (a double-click): the reader alone, with Previous and Next. */
+@media (min-width: 769px) {
+  .app[data-pane="message"] > .folders, .app[data-pane="message"] > .list-pane { display: none; }
+}
+.nav-tools { display: inline-flex; align-items: center; }
+.app:not(.single, [data-pane="message"]) .nav-tools { display: none; } /* Previous and Next: in the message view only */
+/* Elastic's footer under a phone's message: Previous, Reply, Next. */
+.reader-nav {
+  display: flex; align-items: center; justify-content: space-around; flex: none;
+  height: var(--bar-height); border-top: 1px solid var(--border); background: var(--bg-header);
+}
+@media (max-width: 768px) {
+  .nav-tools, .open-window { display: none; } /* the footer has them; a phone gets no second window */
+}
+
+/* Visibility helpers only hide, and never set `display` otherwise, so each element keeps its own. They come
+   after the component rules above, so they win over them. */
+@media (min-width: 769px) {
+  .phone-only { display: none; }
+}
+@media (max-width: 768px) {
+  .extwin { display: none; } /* Elastic hides Compose's "Open in new window" on a phone */
+}
+@media (min-width: 1201px) {
+  .folders-button, .fab { display: none; } /* below 1201 px the folder column and its Compose may be hidden */
+}
+@media (min-width: 1201px), (max-width: 768px) {
+  .list-tools-folded { display: none; }
+}
+.about h3 { margin: 0; font-size: 1rem; }
+.about p { margin: 0; }
+.identity { display: grid; gap: 0.35rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+.identity-address { margin: 0; font-size: 0.95rem; }
+.ask { display: flex; flex-direction: column; gap: 0.75rem; padding: 0 1.1rem 1rem; }
+.ask p { margin: 0; }
+.button.primary.danger { background: var(--danger); border-color: var(--danger); }

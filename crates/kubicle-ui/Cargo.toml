@@ -1,0 +1,27 @@
+[package]
+name              = "kubicle-ui"
+description       = "The kubicle client's shared UI parts: icons, menus and the modal dialog"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+js-sys.workspace = true
+kubicle-api.workspace = true
+leptos.workspace = true
+wasm-bindgen.workspace = true
+web-sys = { workspace = true, features = [
+  "DomRect",
+  "DomRectList",
+  "HtmlDialogElement",
+  "KeyboardEvent",
+  "MouseEvent",
+  "MutationObserver",
+  "MutationObserverInit",
+  "NodeList",
+  "PointerEvent",
+  "ShowPopoverOptions",
+] }
+
+[lints]
+workspace = true

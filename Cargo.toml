@@ -1,0 +1,88 @@
+[workspace]
+members = [
+  "crates/kubicle-api",
+  "crates/kubicle-browser",
+  "crates/kubicle-imap",
+  "crates/kubicle-mail",
+  "crates/kubicle-mailbox",
+  "crates/kubicle-server",
+  "crates/kubicle-ui",
+  "crates/kubicle-web",
+]
+resolver = "3"
+
+[workspace.package]
+edition      = "2024"
+license      = "AGPL-3.0-only"
+rust-version = "1.90"
+version      = "0.1.0"
+
+[workspace.dependencies]
+axum                 = "0.8"
+base64               = "0.22"
+bytes                = "1"
+futures-util         = "0.3"
+js-sys               = "0.3"
+kubicle-api          = { path = "crates/kubicle-api" }
+kubicle-browser      = { path = "crates/kubicle-browser" }
+kubicle-imap         = { path = "crates/kubicle-imap" }
+kubicle-mail         = { path = "crates/kubicle-mail" }
+kubicle-mailbox      = { path = "crates/kubicle-mailbox" }
+kubicle-ui           = { path = "crates/kubicle-ui" }
+leptos               = { version = "0.8", features = [ "csr" ] }
+mail-parser          = { version = "0.11", features = [ "full_encoding" ] } # full_encoding: multi-byte charsets
+regex                = "1"
+serde                = { version = "1", features = [ "derive" ] }
+serde_json           = "1"
+thiserror            = "2"
+tokio                = "1"
+tracing              = "0.1"
+url                  = "2"
+wasm-bindgen         = "=0.2.129"                                           # must equal nixpkgs' wasm-bindgen-cli, which writes the JS glue
+wasm-bindgen-futures = "0.4"
+web-sys              = "0.3"
+zeroize              = "1"
+
+[workspace.dependencies.jiff]
+default-features = false
+features         = [ "std", "tzdb-bundle-always" ] # the image carries no zoneinfo, so the tzdb is built in
+version          = "0.2"
+
+[workspace.dependencies.rustls]
+default-features = false
+features         = [ "ring", "std", "tls12", "logging" ]
+version          = "0.23"
+
+[workspace.dependencies.tokio-rustls]
+default-features = false
+features         = [ "ring", "tls12", "logging" ]
+version          = "0.26"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+missing_errors_doc      = "allow"
+missing_panics_doc      = "allow"
+module_name_repetitions = "allow"
+pedantic                = { level = "warn", priority = -1 }
+
+[profile.release]
+codegen-units = 1
+lto           = "thin"
+
+# Only the client's own crate is built for size: doing the same for its dependencies saved 18 KB in brotli but
+# cost half a millisecond on each page turn and folder switch (Oct 25, 2026).
+[profile.release.package.kubicle-web]
+opt-level = "z"
+
+# Builds for the test suites: release's optimisation without its whole-crate passes, so a one-file change
+# rebuilds in seconds. `release` stays the shipped build.
+[profile.fast]
+codegen-units = 256
+incremental   = true
+inherits      = "release"
+lto           = false
+
+[profile.fast.package.kubicle-web]
+opt-level = "z"

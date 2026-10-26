@@ -1,0 +1,25 @@
+name: Code quality
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read # checking out the repository is all any step needs; nothing writes back
+
+jobs:
+  lint:
+    name: Formatters, linters and type checkers
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false # no later step uses git; else the token sits in .git/config
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+      # The lint shell, not the default one: it leaves out the compiler and the wasm target. No clippy, builds or
+      # VM suites here; they compile, and tests/suite.sh runs them on the development machine.
+      - run: nix develop .#lint --command tests/lint.sh
+        env:
+          GH_TOKEN: ${{ github.token }} # enables zizmor's online audits (impostor commits, known-vulnerable actions)

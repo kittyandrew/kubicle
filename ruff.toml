@@ -1,0 +1,14 @@
+# Ruff walks up from each .py to find this file, so it covers every tracked script. The commands are in the
+# Gates block of .claude/rules/002-dev.md.
+line-length = 131
+# Pinned because ruff's default set grows between releases: 0.16 enables ~400 rules.
+lint.select = [ "E", "W", "F", "I" ]
+
+# Parts of one VM test script: the test driver joins them after record.py and gives them `machine`, and it checks
+# the names in the joined script itself (ruff F and ty). Here, not as `# ruff: noqa` in the file, which ruff
+# applies to the whole script wherever it stands, and so would switch the driver's check off too.
+[lint.per-file-ignores]
+"tests/vm/cost.py"         = [ "F821" ]
+"tests/vm/differential.py" = [ "F821" ]
+"tests/vm/liveness.py"     = [ "F821" ]
+"tests/vm/scenarios.py"    = [ "F821" ]

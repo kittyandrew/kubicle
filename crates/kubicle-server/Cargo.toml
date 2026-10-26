@@ -1,0 +1,43 @@
+[package]
+name              = "kubicle-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+axum                      = { workspace = true, features = [ "multipart" ] }
+base64.workspace          = true
+bytes.workspace           = true
+futures-util.workspace    = true
+http-body-util            = "0.1"
+hyper                     = { version = "1", features = [ "client", "http1" ] }
+hyper-util                = { version = "0.1", features = [ "tokio" ] }
+ipnet                     = "2"
+jiff.workspace            = true
+kubicle-api.workspace     = true
+kubicle-imap.workspace    = true
+kubicle-mail.workspace    = true
+kubicle-mailbox.workspace = true
+mail-parser.workspace     = true
+regex.workspace           = true
+ring                      = "0.17"                                                 # signed-URL HMAC; rustls has it too
+rustls.workspace          = true
+serde.workspace           = true
+serde_json.workspace      = true
+subtle                    = "2"
+tokio-rustls.workspace    = true
+tower-http                = { version = "0.7", features = [ "fs", "set-header" ] }
+tracing.workspace         = true
+tracing-subscriber        = { version = "0.3", features = [ "env-filter" ] }
+url.workspace             = true
+webpki-roots              = "1"
+zeroize.workspace         = true
+zip                       = { version = "=9.0.5", default-features = false }       # pinned: releases come days apart
+
+# The long one, in a table of its own, so the list above aligns within the width.
+[dependencies.tokio]
+features  = [ "macros", "rt-multi-thread", "net", "signal", "time", "sync", "io-util", "fs" ]
+workspace = true
+
+[lints]
+workspace = true
