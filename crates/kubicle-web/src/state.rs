@@ -492,8 +492,10 @@ impl App {
         spawn_local(async move {
             let session = match api::read::<Session>(session).await {
                 Ok(session) => session,
+                Err(e) if e.1 == 401 => return, // Root's `on_signed_out` signs in at once, or shows the session notice
                 Err(e) => return self.notify(format!("Could not load the mailbox: {}", e.0)),
             };
+            api::session_answered();
             if reload_onto(&session.build) {
                 return;
             }

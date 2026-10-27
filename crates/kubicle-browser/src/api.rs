@@ -19,6 +19,8 @@ thread_local! {
 
 /// The session-storage key under which `reauthenticate` keeps the address for after the sign-in (`boot.js`).
 const RETURN_KEY: &str = "kubicle.return";
+/// The session-storage key `sign_in_at_once` sets on its way to `sso.php`, until a session answers.
+const SIGNING_IN_KEY: &str = "kubicle.signing-in";
 
 /// JSON text into `T`: the browser parses it, serde only maps the result onto `T`.
 pub fn parse<T: DeserializeOwned>(text: &str) -> Result<T, Error> { from_js(js_sys::JSON::parse(text)?) }
@@ -55,6 +57,26 @@ pub fn reauthenticate() {
         let _ = storage.set_item(RETURN_KEY, &hash);
     }
     let _ = window.location().set_href("sso.php");
+}
+
+/// A page that never had a session goes to `sso.php` now, as Mailu's Roundcube plugin sends any page request without
+/// one there. `false` leaves the notice and its 2 s pause to the caller: this tab's last such jump brought no session
+/// (going again at once could loop with no pause, as when kubicle's cookie does not stick), or session storage is off.
+#[must_use]
+pub fn sign_in_at_once() -> bool {
+    let Ok(Some(storage)) = leptos::prelude::window().session_storage() else { return false };
+    if storage.get_item(SIGNING_IN_KEY).ok().flatten().is_some() || storage.set_item(SIGNING_IN_KEY, "").is_err() {
+        return false;
+    }
+    reauthenticate();
+    true
+}
+
+/// The session answered: a later refusal may again `sign_in_at_once`.
+pub fn session_answered() {
+    if let Ok(Some(storage)) = leptos::prelude::window().session_storage() {
+        let _ = storage.remove_item(SIGNING_IN_KEY);
+    }
 }
 
 pub fn on_signed_out(then: impl Fn() + 'static) { ON_SIGNED_OUT.set(Some(Box::new(then))); }

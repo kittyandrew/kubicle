@@ -1302,6 +1302,59 @@ Content-Type: text/html; charset=utf-8
         settings_change(trusted_senders=before["trusted_senders"], remote_images=before["remote_images"])
 
 
+# The remote images notice and every part of it that ends past the screen's edge, or whose text spills out of it.
+OUTSIDE = """const n = document.querySelector('.notice.images'), edge = document.documentElement.clientWidth;
+    return [n, ...n.children].filter(e => e.getBoundingClientRect().right > edge + 0.5 || e.scrollWidth > e.clientWidth)
+        .map(e => `${e.tagName.toLowerCase()}.${e.getAttribute('class') ?? ''}: ${e.textContent.trim()}`)"""
+# Whether the notice's sentence starts on the icon's row, rather than wrapping below it.
+BESIDE_ICON = """const n = document.querySelector('.notice.images'), icon = n.querySelector('.icon').getBoundingClientRect();
+    return n.querySelector(':scope > span').getBoundingClientRect().top < icon.bottom"""
+
+
+def images_notice_fits_a_phone() -> None:
+    # On a phone the notice wraps: "Always for" takes its own line, its address's local part giving way only when that
+    # line is too narrow too, and the sentence for a trusted sender's unverified mail wraps beside the icon, its Show
+    # still on screen. Held on one line, both ran past the screen and the button's text past the button.
+    mails = {
+        "Remote image from a long address": "Example <no-reply-member-login@mail.example-corp.com>",
+        "Remote image from a trusted sender, unverified": "Ivan <ivan@example.net>",
+    }
+    for subject, sender in mails.items():
+        deliver_raw(
+            subject,
+            f"""From: {sender}
+To: {tier.user}
+Subject: {subject}
+Content-Type: text/html; charset=utf-8
+
+<p>Look: <img src="https://images.example.com/pixel.png"></p>""",
+        )
+    before = settings_change(remote_images="Trusted", trusted_senders=["ivan@example.net"])
+    try:
+        metrics = {"width": 360, "height": 800, "deviceScaleFactor": 1, "mobile": True}
+        wd("cdp", "Emulation.setDeviceMetricsOverride", json.dumps(metrics))
+        reload()
+        for subject in mails:
+            open_folder("Inbox")
+            row_click(subject)
+            wait("!!document.querySelector('.notice.images')")
+            outside = js(OUTSIDE)
+            assert not outside, f"{subject}: past the screen or spilling: {outside}"
+            assert js(BESIDE_ICON), f"{subject}: the sentence went below the icon"
+    finally:
+        wd("cdp", "Emulation.clearDeviceMetricsOverride", "{}")
+        settings_change(trusted_senders=before["trusted_senders"], remote_images=before["remote_images"])
+        reload()
+
+
+def installable() -> None:
+    # Chrome fetches the web app manifest without cookies unless its link asks for them, and front answers a request
+    # without Mailu's session with its sign-in page, which Chrome then parsed as the manifest and would not install.
+    reload()
+    errors = json.loads(wd("cdp", "Page.getInstallabilityErrors", "{}"))["installabilityErrors"]
+    assert not errors, [e["errorId"] for e in errors]
+
+
 def folder_column_arrows() -> None:
     # From 769 to 1200 px the Folders button shows the folder column in the list's place. An arrow key from the page
     # then goes to the folders, where the next one moves between them, and the hidden list's open message stays.
@@ -4167,6 +4220,45 @@ def session_end_keeps_page() -> None:
         reload()
 
 
+# Notes in local storage, which outlives each navigation, the page that showed a toast (the session notice or an
+# error) and its text: an observer from the start of every document the tab loads while this script is added, Mailu's
+# sign-in page included.
+NOTICE_WATCH = """new MutationObserver(() => {
+        const t = document.querySelector('.toast')
+        if (t) localStorage.setItem('kubicle-test.notice', `${location.pathname}: ${t.textContent}`)
+    }).observe(document, {childList: true, subtree: true})"""
+
+
+def first_load_signs_in_at_once() -> None:
+    # Refused before its first session, a page goes to sso.php at once, as Mailu's Roundcube does, with no notice or
+    # its 2 s: here the service worker's stored app, opened after Mailu's session ended, as on a phone (a kubicle
+    # restart's 401 takes the same path, `api::answer`). Refused again before a session came, the notice and its 2 s
+    # sign-in instead: going at once could loop with no pause, as where kubicle's cookie does not stick.
+    def jumps_at_once() -> None:
+        js("localStorage.removeItem('kubicle-test.notice'); return true")
+        wd("go", "about:blank")
+        drop_mailu_session()
+        wd("go", "http://localhost/login/")
+        wait("!!document.querySelector('input[name=pw]')", 60)
+        shown = js("return localStorage.getItem('kubicle-test.notice')")
+        assert not shown, f"a toast showed before a first session, on {shown}"
+
+    watch = json.loads(wd("cdp", "Page.addScriptToEvaluateOnNewDocument", json.dumps({"source": NOTICE_WATCH})))
+    try:
+        reload()  # the service worker controls the page from its second load
+        jumps_at_once()
+        mailu_sign_in_again()
+        wait("location.pathname === '/login/' && !!document.querySelector('.folder')", 60)
+        jumps_at_once()  # again, as that session cleared the tab's mark (`api::session_answered`)
+        wd("go", "http://localhost/login/")  # back from Mailu's sign-in page unsigned: refused again before a session
+        wait(NOTICE)
+        mailu_sign_in_again()
+        wait("location.pathname === '/login/' && !!document.querySelector('.folder')", 60)
+    finally:
+        wd("cdp", "Page.removeScriptToEvaluateOnNewDocument", json.dumps({"identifier": watch["identifier"]}))
+        signed_in_again()
+
+
 def run_scenarios() -> None:
     scenario("sign-in through sso.php", sign_in)
     scenario("a page of INBOX", inbox_page)
@@ -4197,6 +4289,7 @@ def run_scenarios() -> None:
     scenario("Last page keeps the keyboard focus", last_page_keeps_focus)
     scenario("a search's deleted row stays off", search_delete_stays_off)
     scenario("Always for a sender keeps the keyboard focus", trust_keeps_focus)
+    scenario("the remote images notice fits a phone", images_notice_fits_a_phone)
     scenario("arrow keys with the folder column in the list's place", folder_column_arrows)
     scenario("Discard's answer gives the list the focus at once", discard_keeps_focus)
     scenario("the print page's lines and attachments", print_page)
@@ -4241,6 +4334,7 @@ def run_scenarios() -> None:
     scenario("a forwarded message shows inline", forwarded_inline)
     scenario("inline images by Roundcube's rule", inline_images_listed)
     scenario("no mail is ever cached", cache_policy)
+    scenario("Chrome can install the app", installable)
     scenario("a signed URL serves only as signed", signed_links_refused)
     scenario("a recreated folder's mail does not inherit Show remote images", shown_after_recreate)
     scenario("the flag before the subject", flag_in_reader)
@@ -4295,6 +4389,7 @@ def run_scenarios() -> None:
     scenario("session end in Compose keeps it, and comes back to it", session_end_in_compose)
     scenario("Compose left while signed out goes to Drafts after the sign-in", session_end_leaves_compose)
     scenario("session end elsewhere comes back to the folder and page", session_end_keeps_page)
+    scenario("a page that never had a session signs in at once", first_load_signs_in_at_once)
     scenario("a deploy reaches the open page", deploy_reaches_open_page)
     scenario("the size limit is learned once submission answers", size_limit_retry)
     scenario("refused sign-ins leave nothing behind", forged_sign_ins_leave_nothing)

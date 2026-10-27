@@ -317,9 +317,11 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); margi
 /* The warning's colour, not the accent's: these lift a privacy guard. The text leans to --fg for contrast on
    light themes. */
 .notice > .link { padding: 0.15rem 0.6rem; border-radius: var(--radius); background: color-mix(in srgb, var(--warning) 18%, transparent); color: color-mix(in srgb, var(--warning) 75%, var(--fg)); font-weight: 600; }
-.notice.images { flex-wrap: nowrap; } /* on one line: the address in it gives way instead (.trust) */
-.notice.images > :not(.trust) { flex: none; }
-.notice > .trust { display: inline-flex; min-width: 0; white-space: pre; }
+.notice.images > span { max-width: calc(100% - 1.25em - 0.5rem); } /* wraps beside the icon: less .icon's width and the gap */
+/* Its own line once the row is full; the address's local part gives way when that line is too narrow too, then the
+   domain's end, cut (the title holds the whole address). Hidden overflow lets the button shrink to the line. */
+.notice > .trust { display: inline-flex; overflow: hidden; white-space: pre; }
+/* Hidden overflow lets it shrink below its text, never under 3ch: at 0 the button read as trusting the whole domain. */
 .trust-local { min-width: 3ch; overflow: hidden; text-overflow: ellipsis; }
 .notice > .link:hover { background: color-mix(in srgb, var(--warning) 32%, transparent); text-decoration: none; }
 :is(.dialog-body, .compose-form) > .notice { margin: 0; } /* the reader's margin lines it up with the mail; here the form does */

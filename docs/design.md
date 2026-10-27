@@ -59,10 +59,13 @@ kubicle runs as the container behind Mailu front's `webmail` alias, where Roundc
   prefix before proxying, so kubicle serves `/` and the client builds every URL from the base path it was
   loaded under.
 - **Sign-in is Mailu's.** Every request under `WEB_WEBMAIL` passes front's `auth_request`; a missing or
-  expired Mailu session redirects to Mailu's sign-in page. kubicle has no login page of its own.
+  expired Mailu session redirects to Mailu's sign-in page. kubicle has no login page of its own. That includes the
+  web app manifest, which Chrome fetches without cookies unless the link asks for them: `index.html` links it with
+  `crossorigin="use-credentials"`, else Chrome parses the sign-in page as the manifest and refuses to install.
 - **Identity comes from one route only.** Front adds `X-Remote-User` and `X-Remote-User-Token` only on
   `/sso.php`. On every other path a browser could send those headers itself, so kubicle reads them on
-  `/sso.php` and nowhere else. A request without a kubicle session redirects to `sso.php`.
+  `/sso.php` and nowhere else. A page without a kubicle session goes to `sso.php`: at once before its first session,
+  after the notice once it had one (both below).
 - **The identity is proven, not trusted.** Before creating a session, `sso.php` logs in to IMAP with the user
   and token it received; a header forged by anything that can reach kubicle has no live Mailu token, so it gets
   a 403. The peer range check (`KUBICLE_TRUSTED_PROXY`, required) is a second guard there, and the only one kubicle
@@ -103,15 +106,27 @@ kubicle runs as the container behind Mailu front's `webmail` alias, where Roundc
 - **Known limit.** Mailu idles a session out after an hour without requests (`SESSION_TIMEOUT`). A kubicle
   tab left open keeps its IMAP connection, which stays valid; a reconnect after that hour needs a fresh
   `sso.php` round, which the client triggers on the next request.
-- **Session end, as Roundcube's `session_error`.** An answer of 401 (no kubicle session) or a redirected one
-  (front's sign-in page, once Mailu's session ended) shows Roundcube's persistent "Your session is invalid or
-  expired." with a Sign in again button, alone, as Roundcube's (no other notice shows then), and the page sends
-  nothing more of its own: the event stream stays closed and Compose's save to Drafts waits, its text kept in the
-  browser. Compose stays, so nothing typed is lost; anywhere else, and once Compose is left, the sign-in follows 2 s
-  later. A Compose left meanwhile goes to Drafts from its browser copy once the user is signed in again, unasked.
-  The button and that sign-in keep the address's hash in the tab's session storage across `sso.php` and Mailu's
-  sign-in, and the page puts it back before it starts, so it returns to the same Compose with its text, or the same
-  folder and page, where Roundcube under Mailu opens the Inbox and a fresh Compose.
+- **A page that never had a session signs in at once.** The service worker answers with the stored app without
+  waiting on front, so the app starts after Mailu's session ended; kubicle serves its page without a session, so it
+  starts after kubicle restarted; and Mailu's sign-in clears `roundcube_sessid` (`_clear_webmail_cookies`), so the
+  first page after it has no kubicle session. Refused before its first session, the page has nothing open to lose
+  and goes to `sso.php` at once, as Mailu's Roundcube plugin (`webmails/roundcube/login/mailu.php`) sends a page
+  request without a session there. A mark in the tab's session storage lasts from that jump until a session answers.
+  Refused again with it set, the jump brought no session (kubicle's cookie did not stick, the sign-in at Mailu was
+  left unfinished, or `sso.php` refused), and the notice below shows. Its 2 s sign-in still goes round, at
+  Roundcube's pace and with the reason in sight, where going at once could loop with no pause. With session storage
+  off, the notice always shows. Before, every such start showed the notice for its 2 s: the stored app opened after
+  Mailu's session ended showed the sign-in form after 3.2 s and the mail after 4.7 s, now after 1.2 and 2.7 s, in a
+  VM with 100 ms added per round trip and the CPU slowed four times (Oct 27, 2026).
+- **Session end, as Roundcube's `session_error`.** Once the page had a session, an answer of 401 (no kubicle
+  session) or a redirected one (front's sign-in page, once Mailu's session ended) shows Roundcube's persistent
+  "Your session is invalid or expired." with a Sign in again button, alone, as Roundcube's (no other notice shows
+  then), and the page sends nothing more of its own: the event stream stays closed and Compose's save to Drafts
+  waits, its text kept in the browser. Compose stays, so nothing typed is lost; anywhere else, and once Compose is
+  left, the sign-in follows 2 s later. A Compose left meanwhile goes to Drafts from its browser copy once the user
+  is signed in again, unasked. The button and that sign-in keep the address's hash in the tab's session storage
+  across `sso.php` and Mailu's sign-in, and the page puts it back before it starts, so it returns to the same
+  Compose with its text, or the same folder and page, where Roundcube under Mailu opens the Inbox and a new Compose.
 
 ## IMAP
 

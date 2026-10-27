@@ -489,7 +489,7 @@ fn images_notice(app: App, email: &str) -> impl IntoView + use<> {
         "Remote images are hidden."
     };
     let email = email.to_owned();
-    // A long address gives way in its local part, cut before the @, so the domain always shows; the title is whole.
+    // A long address gives way in its local part, cut before the @, so the domain shows while it fits; the title is whole.
     let (local, domain) = email.rsplit_once('@').map_or_else(|| (email.clone(), String::new()), |(l, d)| (l.to_owned(), format!("@{d}")));
     let always = format!("Always show remote images from {email}");
     let trust = move |_| {

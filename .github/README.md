@@ -3,7 +3,7 @@
 [![CI](https://github.com/kittyandrew/kubicle/actions/workflows/quality.yml/badge.svg)](https://github.com/kittyandrew/kubicle/actions/workflows/quality.yml)
 ![Built with Rust](https://img.shields.io/badge/built%20with-Rust-dea584?logo=rust&logoColor=white)
 ![Built with Nix](https://img.shields.io/badge/built%20with-Nix-5277c3?logo=nixos&logoColor=white)
-![Goal: ~12,800 of 10,000 lines](https://img.shields.io/badge/goal-~12%2C800%20%2F%2010%2C000%20lines-lightgrey)
+![Goal: ~12,900 of 10,000 lines](https://img.shields.io/badge/goal-~12%2C900%20%2F%2010%2C000%20lines-lightgrey)
 ![License](https://img.shields.io/github/license/kittyandrew/kubicle)
 
 After PHP got pwned in October 2026, I impulsively decided to rewrite the Roundcube frontend of my Mailu

@@ -35,9 +35,15 @@ fn main() {
 fn Root() -> impl IntoView {
     let app = App::new();
     provide_context(app);
-    api::on_signed_out(move || app.signed_out.set(true));
-    // Roundcube's `session_error`: Compose stays, with the notice and its timers stopped, so nothing typed is lost;
-    // anywhere else, and once Compose is left, the sign-in follows 2 s after the notice.
+    // Before its first session the page has nothing open to lose (Compose starts only once the session came), so a
+    // refusal signs in at once, as Mailu's Roundcube sends a page request without a session to sso.php.
+    api::on_signed_out(move || {
+        if app.ready.get_untracked() || !api::sign_in_at_once() {
+            app.signed_out.set(true);
+        }
+    });
+    // After it, Roundcube's `session_error`: Compose stays, with the notice and its timers stopped, so nothing typed
+    // is lost; anywhere else, and once Compose is left, the sign-in follows 2 s after the notice.
     Effect::new(move |_| {
         if app.signed_out.get() && app.view.get() != View::Compose {
             set_timeout(api::reauthenticate, std::time::Duration::from_secs(2));
