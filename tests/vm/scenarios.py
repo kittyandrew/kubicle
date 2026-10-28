@@ -1347,6 +1347,66 @@ Content-Type: text/html; charset=utf-8
         reload()
 
 
+# A box's bottom, and the lowest edge of anything visible inside it (its own top when it holds only text).
+BOTTOM_EDGES = """const box = document.querySelector(%s), r = box.getBoundingClientRect();
+    const inside = [...box.querySelectorAll('button, input, select, label, span, svg')].filter(e => e.getClientRects().length)
+        .map(e => e.getBoundingClientRect().bottom);
+    return {top: r.top, bottom: r.bottom, content: Math.max(r.top, ...inside), screen: innerHeight}"""
+
+
+def bottom_bars_clear_the_gesture_bar() -> None:
+    # Chrome on a phone draws a page with viewport-fit=cover under its gesture bar, whose height it gives as
+    # safe-area-inset-bottom. Each bar at the bottom then reaches the screen's edge with its buttons above the gesture
+    # bar, and Compose's last option, a toast and the floating Compose sit above it too. Before, all sat in it.
+    inset = 48  # dp, Android's three-button bar: the gesture bar's 24 equals a toast's own 1.5rem and hides one in it
+    wrong: list[str] = []
+
+    def bar(state: str, selector: str) -> dict:
+        m = js(BOTTOM_EDGES % json.dumps(selector))
+        if abs(m["bottom"] - m["screen"]) > 0.5 or m["content"] > m["screen"] - inset + 0.5:
+            wrong.append(f"{state} {selector}: {m}")
+        return m
+
+    subject = "Bottom bars on a phone"
+    deliver_raw(subject, f"From: Pat <pat@example.net>\nTo: {tier.user}\nSubject: {subject}\n\nA line.")
+    phone = {"width": 360, "height": 800, "deviceScaleFactor": 1, "mobile": True}
+    wd("cdp", "Emulation.setDeviceMetricsOverride", json.dumps(phone))
+    wd("cdp", "Emulation.setSafeAreaInsetsOverride", json.dumps({"insets": {"bottom": inset, "bottomMax": inset}}))
+    try:
+        reload()
+        open_folder("Inbox")
+        paging = bar("list", ".paging")
+        fab = js(BOTTOM_EDGES % json.dumps(".fab"))
+        if fab["bottom"] > paging["top"] - 14 + 0.5:  # Elastic's 14 px above the footer (base.css, .fab)
+            wrong.append(f"list .fab: {fab}, the paging bar's top at {paging['top']}")
+        js("document.querySelector('.folders-button').click()")
+        wait("document.querySelector('.app').dataset.pane === 'folders'")
+        bar("folders", ".folders-bottom")
+        open_folder("Inbox")
+        row_click(subject)
+        bar("reader", ".reader-nav")
+        js("""const t = document.createElement('div'); t.className = 'toast'; t.popover = 'manual';
+            t.textContent = 'A toast as main.rs shows one'; document.body.append(t); t.showPopover()""")
+        toast = js(BOTTOM_EDGES % json.dumps(".toast"))
+        if toast["bottom"] > toast["screen"] - inset + 0.5:
+            wrong.append(f"toast: {toast}")
+        js("document.querySelector('.toast').remove()")
+        js("[...document.querySelectorAll('.reader-nav button')].find(b => b.textContent.trim() === 'Reply').click()")
+        wait("!!document.querySelector('.compose-side')")
+        js("const m = document.querySelector('.compose-main'); m.scrollTop = m.scrollHeight")
+        bar("compose, scrolled to its end", ".compose-side")
+        js("document.querySelector(\".compose .tool[title='Discard this draft']\").click()")
+        wait("!document.querySelector('.compose') || document.querySelector('.dialog .button.primary')")
+        if js("return !!document.querySelector('.dialog .button.primary')"):
+            js("document.querySelector('.dialog .button.primary').click()")
+        wait("!document.querySelector('.compose')")
+        assert not wrong, "in the gesture bar or short of the screen's edge:\n" + "\n".join(wrong)
+    finally:
+        wd("cdp", "Emulation.setSafeAreaInsetsOverride", json.dumps({"insets": {"bottom": 0, "bottomMax": 0}}))
+        wd("cdp", "Emulation.clearDeviceMetricsOverride", "{}")
+        reload()
+
+
 def installable() -> None:
     # Chrome fetches the web app manifest without cookies unless its link asks for them, and front answers a request
     # without Mailu's session with its sign-in page, which Chrome then parsed as the manifest and would not install.
@@ -1603,7 +1663,7 @@ def image_proxy_bounded() -> None:
 def image_proxy() -> None:
     # vm-full only: its image host (image-server.nix) stands for a sender's. Each signed image URL in the mail frame
     # brings the image through kubicle with its own User-Agent and none of the browser's Cookie or Referer, follows a
-    # redirect, and answers 502 for a page that is no image.
+    # redirect, and answers 502 for a page that is no image. The frame's own loads pass front without a cookie.
     host = "http://images.example.net"
     original = machine.succeed(
         f"ip netns exec images curl -sf {host}/pixel.png --resolve images.example.net:80:11.0.0.80 | base64 -w0"
@@ -1616,16 +1676,41 @@ def image_proxy() -> None:
             f"""From: Pat <pat@example.net>
 To: {tier.user}
 Subject: {subject}
+Content-Type: multipart/related; boundary=b
+
+--b
 Content-Type: text/html; charset=utf-8
 
-<p><img src="{host}/pixel.png"><img src="{host}/moved.png"><img src="{host}/page.png"></p>""",
+<p><img src="{host}/pixel.png"><img src="{host}/moved.png"><img src="{host}/page.png"><img src="cid:dot@example.net"></p>
+--b
+Content-Type: image/png
+Content-ID: <dot@example.net>
+Content-Transfer-Encoding: base64
+
+{original}
+--b--""",
         )
+        since = machine.succeed("date +%s").strip()
         open_folder("Inbox")
         row_click(subject)
         srcdoc = wait(
             "document.querySelector('.mail-frame iframe')?.srcdoc.includes('/image?')"
             " && document.querySelector('.mail-frame iframe').srcdoc"
         )
+
+        # What front answered the frame's loads, before this test asks for anything itself. The frame has an opaque
+        # origin and sends no cookie, so front must pass the signed routes without Mailu's sign-in check, which would
+        # answer each with a 302 to its sign-in page and the frame would show broken images.
+        def framed() -> set:
+            log = machine.succeed(f"docker logs --since {since} mailu-front 2>&1")
+            return set(re.findall(r'"GET /login/(image|inline)\?\S* HTTP/[\d.]+" (\d+)', log))
+
+        deadline = time.monotonic() + 30
+        while not ({route for route, _ in framed()} == {"image", "inline"} or time.monotonic() > deadline):
+            time.sleep(0.5)
+        time.sleep(1)  # the image loads that answer last
+        statuses = framed()
+        assert statuses == {("image", "200"), ("image", "502"), ("inline", "200")}, statuses
         signed = {}
         for url in re.findall(r'src="([^"]*/image\?[^"]*)"', srcdoc):
             url = html.unescape(url)
@@ -1653,6 +1738,37 @@ Content-Type: text/html; charset=utf-8
         assert not [headers for _, headers in seen if {"cookie", "referer"} & set(headers)], seen
     finally:
         settings_change(remote_images=before["remote_images"])
+
+
+def too_large_part() -> None:
+    # vm-full only: a part too large to show is listed with the attachments, and its Download saves the whole part.
+    # The frame must not link to it: a navigation the frame starts carries no cookie, so Mailu front's sign-in check
+    # answers it with a 302 to its sign-in page, and the frame's sandbox allows no download.
+    subject = "A part too large to show"
+    body = "head -c 2200000 /dev/zero | tr '\\0' a | fold -w 76"  # past render.rs's MAX_SHOWN, 2 MiB
+    machine.succeed(f"{{ printf 'From: Pat <pat@example.net>\\nTo: {tier.user}\\n\\n'; {body}; }} > /tmp/raw.eml")
+    machine.succeed(tier.deliver(subject, "--data @/tmp/raw.eml"))
+    arrived("INBOX", subject)
+    open_folder("Inbox")
+    row_click(subject)
+    srcdoc = wait(
+        "[...document.querySelectorAll('.notice')].some(n => n.textContent.includes('too large to show'))"
+        " && document.querySelector('.mail-frame iframe')?.srcdoc"
+    )
+    assert "/download?" not in srcdoc, "the mail frame links to the part"
+    chips = js("return [...document.querySelectorAll('.attachments .chip')].map(c => c.textContent)")
+    assert len(chips) == 1, chips
+    since = machine.succeed("date +%s").strip()
+    machine.succeed("rm -rf /tmp/downloads")
+    wd("cdp", "Browser.setDownloadBehavior", json.dumps({"behavior": "allow", "downloadPath": "/tmp/downloads"}))
+    wd("click", ".attachments .chip")
+    js("[...document.querySelectorAll('button.menu-item')].find(b => b.textContent.trim() === 'Download').click()")
+    machine.wait_until_succeeds("ls /tmp/downloads/* && ! ls /tmp/downloads/*.crdownload", timeout=30)
+    saved = int(machine.succeed("stat -c %s /tmp/downloads/*").strip())
+    log = machine.succeed(f"docker logs --since {since} mailu-front 2>&1")
+    answered = re.findall(r'"GET /login/download\?\S* HTTP/[\d.]+" (\d+) (\d+)', log)
+    # Front's answer whole, and the file saved as large: not a transfer the browser cut short.
+    assert answered == [("200", str(saved))] and saved > 2 << 20, (answered, saved)
 
 
 def invoice(subject: str) -> int:
@@ -4290,6 +4406,7 @@ def run_scenarios() -> None:
     scenario("a search's deleted row stays off", search_delete_stays_off)
     scenario("Always for a sender keeps the keyboard focus", trust_keeps_focus)
     scenario("the remote images notice fits a phone", images_notice_fits_a_phone)
+    scenario("a phone's bottom bars keep clear of its gesture bar", bottom_bars_clear_the_gesture_bar)
     scenario("arrow keys with the folder column in the list's place", folder_column_arrows)
     scenario("Discard's answer gives the list the focus at once", discard_keeps_focus)
     scenario("the print page's lines and attachments", print_page)

@@ -41,7 +41,9 @@ Every first-party crate keeps these, so its boundary stays the compiler's to che
   server memory only, never in SQLite or a log.
 - **The mail frame has an opaque origin and sends no cookies.** Everything it loads (inline parts, proxied
   images) uses URLs signed by `sign.rs`, bound to the session and expiring; a route serving those checks the
-  signature, never the cookie.
+  signature, never the cookie. Front's sign-in check would redirect those loads, so the README's front override
+  passes the routes the frame loads from without it; a new one goes there and in `tests/vm/mailu.nix` too. The
+  frame links to no signed route: such a navigation carries no cookie, and its sandbox allows no download.
 - **Mail HTML has three required layers.** The frame never gets `allow-scripts` or `allow-same-origin`, and
   every document carries the CSP from `render.rs`: together they stop scripts, which the hostile suite proves
   with sanitizing off. ammonia must stay on: only it stops DNS lookups, preconnects, Chromium's prerender

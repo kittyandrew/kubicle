@@ -27,4 +27,6 @@ gate prettier prettier --check "**/*.{js,mjs,ts,yaml,yml}"
 gate oxlint oxlint --deny-warnings
 gate shellcheck tracked "*.sh" shellcheck
 gate zizmor zizmor .github/workflows # online audits too when GH_TOKEN is set, as in CI
+# Chrome paints an installed app's Android navigation bar in this colour for good (docs/design.md, Themes).
+gate "manifest names no theme_color" sh -c '! grep -q theme_color crates/kubicle-web/static/manifest.webmanifest'
 exit "$failed"

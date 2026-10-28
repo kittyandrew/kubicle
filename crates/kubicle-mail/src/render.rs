@@ -59,7 +59,7 @@ body{margin:0;font:14px/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif
 );
 const PAPER_PADDING: u32 = 16;
 /// The largest part shown in a document: the sanitizer's tree costs about 35 times an HTML part's size, in the one
-/// process every user shares. A larger part gets a notice and its download link instead.
+/// process every user shares. A larger part is listed with the attachments instead (`body`).
 const MAX_SHOWN: usize = 2 << 20;
 /// Image sources rewritten in one part; past it, dropped. Each is a signed URL or the blocked SVG, 200 bytes or so
 /// for an 18-byte `<img src=x>`: 2 MB of those made an 18 MB document and a 109 MB peak.
@@ -201,6 +201,7 @@ pub fn message(mail: &Mail, folder: &str, uid: u32, arrival: i64, links: &impl L
     let nested: Vec<Header> =
         structure.contents.iter().flat_map(|c| if let Content::Headers(n) = c { header_rows(n, None) } else { Vec::new() }).collect();
     let suspicious = headers.iter().chain(&nested).filter_map(Header::addresses).flatten().any(|a| look_alike(&a.email));
+    let (body, too_large) = body(&structure, links, shown.remote_images, shown.text);
     Message {
         folder: folder.to_owned(),
         uid,
@@ -209,13 +210,13 @@ pub fn message(mail: &Mail, folder: &str, uid: u32, arrival: i64, links: &impl L
         to: addresses(mail.to()),
         cc: addresses(mail.cc()),
         subject: mail.subject().map(clean).unwrap_or_default(),
-        body: body(&structure, links, shown.remote_images, shown.text),
+        body,
         headers,
         has_html: structure::has_html(mail),
         suspicious,
         list_post: mail.header_raw("List-Post").and_then(list_post).is_some(),
         bcc: ["Bcc", "Resent-Bcc"].into_iter().any(|h| mail.header_raw(h).is_some()),
-        attachments: listed(&structure, links),
+        attachments: listed(&structure, links).into_iter().chain(too_large).collect(),
         authenticity: shown.authenticity,
     }
 }
@@ -226,15 +227,21 @@ fn listed(structure: &Structure, links: &impl Links) -> Vec<Attachment> {
     let shown = structure.listed.iter().filter(|l| !(l.layout_image && l.content_type.starts_with("image/")));
     // Roundcube's display name for a signature part (`attachment_name`); its download keeps its own name.
     let signature = |t: &str| matches!(t, "application/pgp-signature" | "application/pkcs7-signature");
-    let viewable = |t: &str| matches!(t, "text/plain" | "text/html" | "message/rfc822");
-    let attachment = |l: &Listed| Attachment {
-        filename: if signature(&l.content_type) { "Digital Signature".to_owned() } else { l.name.clone() },
-        size: l.data.len() as u64,
-        url: links.part(PartRoute::Download, &l.path),
-        preview_url: structure::image_type(&l.content_type, &l.name).map(|_| links.inline(&l.path, l.section.as_ref())),
-        view_url: viewable(&l.content_type).then(|| links.part(PartRoute::View, &l.path)),
-    };
-    shown.map(attachment).collect()
+    let name = |l: &Listed| if signature(&l.content_type) { "Digital Signature".to_owned() } else { l.name.clone() };
+    shown.map(|l| attachment(links, &l.path, name(l), &l.content_type, l.data.len(), l.section.as_ref())).collect()
+}
+
+/// One entry of the attachment list: its download, a preview for an image, and a page of its own for text, HTML
+/// and a forwarded message.
+fn attachment(links: &impl Links, path: &PartPath, filename: String, kind: &str, size: usize, section: Option<&Section>) -> Attachment {
+    let viewable = matches!(kind, "text/plain" | "text/html" | "message/rfc822");
+    Attachment {
+        url: links.part(PartRoute::Download, path),
+        preview_url: structure::image_type(kind, &filename).map(|_| links.inline(path, section)),
+        view_url: viewable.then(|| links.part(PartRoute::View, path)),
+        filename,
+        size: size as u64,
+    }
 }
 
 /// Roundcube's header table (`message_headers`) for a message or a forwarded one, a row only where there is a
@@ -413,9 +420,12 @@ fn quoted(chars: &mut std::str::Chars<'_>, out: &mut String) -> bool {
 }
 
 /// The body as Roundcube's `message_body` draws it: one frame document with every part in order, HTML sanitized
-/// and text as `plain::html` writes it (HTML too with `text`), then the listed images (`inline_images`).
-fn body(structure: &Structure, links: &impl Links, remote_images: bool, text: bool) -> MailBody {
+/// and text as `plain::html` writes it (HTML too with `text`), then the listed images (`inline_images`). A part past
+/// `MAX_SHOWN` is left out, and comes back for the attachment list: the frame cannot download it, as its sandbox
+/// has no `allow-downloads`, and its navigation carries no cookie for Mailu front's sign-in check.
+fn body(structure: &Structure, links: &impl Links, remote_images: bool, text: bool) -> (MailBody, Vec<Attachment>) {
     let (mut content, mut remote_seen, mut widest, mut all_text) = (String::new(), false, 0, true);
+    let mut too_large = Vec::new();
     // Every HTML part of one message names the same images: read once per message, by the path of its root part.
     let mut by_message: HashMap<PartPath, Arc<Cids>> = HashMap::new();
     let mut cids_of = |node: &Node| Arc::clone(by_message.entry(node.path_of(0)).or_insert_with(|| Arc::new(image_cids(node))));
@@ -424,12 +434,7 @@ fn body(structure: &Structure, links: &impl Links, remote_images: bool, text: bo
             && let size = bytes(node.msg, node.part()).len()
             && size > MAX_SHOWN
         {
-            let (size, href) = (kubicle_api::size(size as u64), links.part(PartRoute::Download, &node.path));
-            let _ = write!(
-                content,
-                "<p class=\"part-notice\">This part is too large to show ({size}). <a href=\"{}\">Download it</a></p>",
-                Escaped(&href)
-            );
+            too_large.push(attachment(links, &node.path, node.name(), &content_type(node.part()), size, None));
             continue;
         }
         let kind = |node: &Node| content_type(node.part());
@@ -465,7 +470,8 @@ fn body(structure: &Structure, links: &impl Links, remote_images: bool, text: bo
             let _ = write!(content, "<p><img src=\"{}\"></p>", Escaped(&links.inline(&image.path, image.section.as_ref())));
         }
     }
-    MailBody { document: document(&content, links.prefix(), widest), remote_blocked: remote_seen, text: all_text }
+    let document = document(&content, links.prefix(), widest);
+    (MailBody { document, remote_blocked: remote_seen, text: all_text, too_large: !too_large.is_empty() }, too_large)
 }
 
 /// A content part's text, for the reader and for a quote alike: a text or report part as it is (`text` once
@@ -1014,7 +1020,7 @@ pub fn part_response(mail: &Mail, path: &PartPath, route: PartRoute, links: &imp
                 let mut head = String::new();
                 headers_table(&header_rows(nested, None), &written_date(nested), &mut head);
                 head.push_str("<hr>");
-                let page = page(&head, &body(&structure, links, remote_images, text));
+                let page = page(&head, &body(&structure, links, remote_images, text).0);
                 Some(sandboxed_page(&page, &nested.subject().map(clean).unwrap_or_default(), links.prefix()))
             }
             _ => None,

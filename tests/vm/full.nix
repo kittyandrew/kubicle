@@ -23,6 +23,7 @@ in
         run_tier(
           ("the image proxy's fetch, redirect and refusal", image_proxy),
           ("the image proxy fetches 8 at a time at most", image_proxy_bounded),
+          ("a part too large to show downloads from the attachment list", too_large_part),
           ("a session ends with its own Mailu session, not another's", own_tokens),
           ("one Mailu session holds one kubicle session", one_session_per_token),
           ("Archive by sender lists the folders once", archive_lists_once),

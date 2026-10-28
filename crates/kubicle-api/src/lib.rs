@@ -495,6 +495,8 @@ pub struct Body {
     pub remote_blocked: bool,
     /// Every part shows as text, which the reader draws in the app's theme.
     pub text: bool,
+    /// A part was too large to show: it is left out of `document` and listed with the attachments.
+    pub too_large: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

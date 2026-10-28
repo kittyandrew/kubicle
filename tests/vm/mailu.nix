@@ -121,10 +121,20 @@
       })
       users;
   };
+  # kubicle's front override, as the README gives it: the routes the mail frame loads its images from pass without
+  # Mailu's sign-in check, as the frame sends no cookie and the URL's signature authorizes them. A regex location,
+  # so it wins over front's own `location /login`.
+  kubicleOverride = ''
+    location ~ ^/login/(inline|image)$ {
+      rewrite ^/login/(.*) /$1 break;
+      include /etc/nginx/proxy.conf;
+      proxy_pass http://$webmail;
+    }
+  '';
   # Roundcube's webmail location beside kubicle's, as front's nginx.conf writes its own: auth_request on every
   # path, and Mailu's identity and token handed over on sso.php alone. `set` comes first, as `rewrite ... break`
   # ends the rewrite module's directives.
-  frontOverrides = pkgs.writeTextDir "roundcube.conf" ''
+  roundcubeOverride = ''
     location /roundcube {
       set $roundcube roundcube;
       rewrite ^(/roundcube)$ $1/ permanent;
@@ -147,6 +157,8 @@
       proxy_pass http://$roundcube;
     }
   '';
+  # One file, not a joined directory: its store symlinks would dangle inside the container.
+  frontOverrides = pkgs.writeTextDir "webmail.conf" (kubicleOverride + pkgs.lib.optionalString roundcube roundcubeOverride);
   # A second mail client, as a phone app connects: IMAPS on front's public port with the account password.
   imapClient = pkgs.writers.writePython3Bin "imap-client" {flakeIgnore = ["E501"];} ''
     """usage: imap-client FOLDER flag UID FLAG | move UID TO | expunge UID"""
@@ -273,7 +285,7 @@ in {
       mailu-front = mailu "nginx" {
         dependsOn = ["mailu-imap" "mailu-smtp" "mailu-admin"]; # nginx exits if an upstream does not resolve
         ports = ["80:80"];
-        volumes = ["${ca}:/certs:ro"] ++ pkgs.lib.optional roundcube "${frontOverrides}:/overrides:ro";
+        volumes = ["${ca}:/certs:ro" "${frontOverrides}:/overrides:ro"];
         networks = ["name=mailu,alias=front,ip=${subnet}.10" "name=webmail,alias=front"];
       };
       kubicle = {

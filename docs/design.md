@@ -62,6 +62,13 @@ kubicle runs as the container behind Mailu front's `webmail` alias, where Roundc
   expired Mailu session redirects to Mailu's sign-in page. kubicle has no login page of its own. That includes the
   web app manifest, which Chrome fetches without cookies unless the link asks for them: `index.html` links it with
   `crossorigin="use-credentials"`, else Chrome parses the sign-in page as the manifest and refuses to install.
+- **The frame's image routes skip front's sign-in check.** The mail frame sends no cookie (Security), so under
+  front's `auth_request` every image it loaded from `inline` or `image` got the 302 to Mailu's sign-in page and
+  showed as broken. An override in front's `/overrides` (the README has it) passes those two routes without the
+  check; the URL's signature authorizes them in kubicle, the session's handle in it and its expiry. `download` and
+  `view` keep the check: only the app page links to them, and its navigations carry Mailu's cookie. Nothing in the
+  frame may link to them: Mailu's cookie is `SameSite=Strict`, so a navigation the frame starts has none either,
+  and the frame's sandbox has no `allow-downloads`.
 - **Identity comes from one route only.** Front adds `X-Remote-User` and `X-Remote-User-Token` only on
   `/sso.php`. On every other path a browser could send those headers itself, so kubicle reads them on
   `/sso.php` and nowhere else. A page without a kubicle session goes to `sso.php`: at once before its first session,
@@ -216,6 +223,14 @@ The baseline is Roundcube's behaviour; each item names where kubicle differs.
   below one pane at a time. Elastic has a 78 px rail kubicle lacks, so the message column is wider by that much,
   and the floating Compose shows at 1200 px and below (Elastic shows it at 768 px and below, its rail holding
   Compose above that), an exception Andrew approved. Elastic's drag handles between the columns are left out.
+- **A phone's gesture bar.** The page asks for `viewport-fit=cover`, so Chrome on a phone (135 and later, in a tab)
+  draws it under the gesture bar and gives the bar's height as `env(safe-area-inset-bottom)`. Every bar at the
+  bottom (the folder column's footer, paging, the footer under a phone's message) grows by that height: its
+  background runs under the gesture bar and its buttons stay above it. The floating Compose, a toast and the end of
+  Compose's options column move up by as much. Before, the gesture bar covered Previous, Reply and Next, measured
+  with a 24 dp inset (Andrew's choice over leaving `cover` out, Oct 28, 2026). The inset is 0 everywhere else, so
+  nothing moves there. The wider layouts' message and Compose form columns keep no room for it, as Chrome draws
+  under the gesture bar on phones only; a browser that reports an inset on a wider screen covers their last lines.
 - **Account.** The full address heads the folder column, centred in the room the folder actions menu (⋮) leaves
   beside it, so a 220 px column still shows a 20 character address whole, with a tooltip when it must shorten. The
   menu holds Roundcube's Empty, Mark all as read, Manage folders and About. About is Roundcube's About dialog (the
@@ -700,6 +715,12 @@ The baseline is Roundcube's behaviour; each item names where kubicle differs.
   screen through attribute selectors and `url()`.
 - **Mail bodies are not themed.** Tokens do not reach inside the sandboxed mail frame; HTML mail always shows
   as its sender designed it, on paper.
+- **The installed app's system bars.** theme.rs keeps `<meta name="theme-color">` on the theme's `--bg-header`,
+  which colours the status bar. Chrome on Android colours an installed app's navigation bar from the manifest's
+  `theme_color` instead, copied into the installed app once and never from the page (Chromium's
+  `WebappIntentDataProvider`, on since August 2026). Any one colour there is wrong under every other theme: its
+  light `#f3f5f7` showed as a white strip under Frappe (Oct 28, 2026). So the manifest names none, and Chrome
+  leaves the bar to the system's light or dark mode, which `auto` follows too. `tests/lint.sh` keeps it out.
 
 ## Speed budgets
 
@@ -764,7 +785,7 @@ HTML inserted into the application's own page. Each rule below answers a class o
   `too_complex`).
 - **One hostile mail's cost is bounded.** One process serves every user, so no mail may cost it out of proportion:
   past 1,000 messages named inside it, or 50,000 part delimiter lines, a message is not parsed (422, and it still
-  downloads); a part past 2 MiB, or HTML the admission pass refuses, shows a notice instead; 1,000 image sources per
+  downloads); a part past 2 MiB is listed with the attachments, HTML the admission pass refuses shows a notice; 1,000 image sources per
   part, 16 enriched excerpts and 256 styling spans are converted, and 1,000 uuencoded files a message unpacked; a
   reply or forward quotes no HTML part past 2 MiB; tables lay out a cell per line; address lists compare as sets;
   a list row carries four recipients, the three the list shows and one for its `...`, so a mail to tens of thousands

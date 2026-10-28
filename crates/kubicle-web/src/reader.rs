@@ -524,7 +524,8 @@ fn summary(app: App, m: &Message, more: RwSignal<Option<More>>) -> AnyView {
 }
 
 /// The lines above the mail, in Roundcube's order (`message_objects`) with kubicle's sender check after the first:
-/// a draft's Edit, a From that may be forged, remote images left out, look-alike addresses.
+/// a draft's Edit, a From that may be forged, remote images left out, a part too large to show (kubicle's own),
+/// look-alike addresses.
 fn notices(app: App, m: &Message, sender: &str) -> impl IntoView + use<> {
     let key = (m.folder.clone(), m.uid);
     // Drafts or one of its subfolders, where Roundcube says a message is a draft.
@@ -545,6 +546,9 @@ fn notices(app: App, m: &Message, sender: &str) -> impl IntoView + use<> {
         })}
         {spoofed.map(|text| view! { <p class="notice danger" role="alert">{icon(icons::JUNK)}{text}</p> })}
         {m.body.remote_blocked.then(|| images_notice(app, sender))}
+        {m.body.too_large.then(|| view! {
+            <p class="notice" role="status">{icon(icons::ATTACH)} "Part of this message is too large to show here. It is listed with the attachments."</p>
+        })}
         {m.suspicious.then(|| view! {
             <p class="notice" role="status">{icon(icons::REPORT)} "This message contains suspicious email addresses that may be fraudulent."</p>
         })}

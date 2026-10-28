@@ -237,7 +237,9 @@ impl<'a> Node<'a> {
     }
 
     /// Its name as the list shows it and a download saves it.
-    fn name(&self) -> String { if self.unnamed_invite() { "calendar.ics".into() } else { render::name_of(self.part(), &self.number()) } }
+    pub(crate) fn name(&self) -> String {
+        if self.unnamed_invite() { "calendar.ics".into() } else { render::name_of(self.part(), &self.number()) }
+    }
 
     fn size(&self) -> usize { render::bytes(self.msg, self.part()).len() }
 

@@ -153,7 +153,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); margi
 .quota.warning .quota-value { background: var(--danger); }
 .folders-bottom {
   display: flex; align-items: center; justify-content: center; gap: 0.1rem; flex: none;
-  height: var(--bar-height); padding: 0 0.25rem; border-top: 1px solid var(--border);
+  height: calc(var(--bar-height) + env(safe-area-inset-bottom)); padding: 0 0.25rem env(safe-area-inset-bottom);
+  border-top: 1px solid var(--border);
 }
 .folders-bottom .tool { min-width: 0; padding: 0 0.3rem; }
 
@@ -244,7 +245,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); margi
 .empty { margin: 2.5rem 1rem; text-align: center; color: var(--fg-muted); }
 .paging {
   display: flex; align-items: center; justify-content: center; gap: 0.1rem; flex: none;
-  height: var(--bar-height); padding: 0 0.25rem; border-top: 1px solid var(--border); background: var(--bg-header);
+  height: calc(var(--bar-height) + env(safe-area-inset-bottom)); padding: 0 0.25rem env(safe-area-inset-bottom);
+  border-top: 1px solid var(--border); background: var(--bg-header);
 }
 .paging > .muted { margin: 0 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .paging .icon-button { width: 1.5rem; } /* Elastic's narrow footer, which leaves the count room */
@@ -395,7 +397,7 @@ button.chip:hover, .preview:hover { border-color: var(--border-strong); }
 .recipient-typed input { flex: 1; min-width: 0; height: 1.6rem; border: 0; background: none; color: var(--fg); font: inherit; outline: none; }
 .compose-side {
   flex: none; width: 19.5rem; display: flex; flex-direction: column; gap: 0.6rem; overflow-y: auto; /* fits "Save sent message in" */
-  padding: 0 1rem 1rem; border-left: 1px solid var(--border); background: var(--bg-list);
+  padding: 0 1rem calc(1rem + env(safe-area-inset-bottom)); border-left: 1px solid var(--border); background: var(--bg-list);
 }
 .side-title { margin: 0 -1rem; padding: 0 1rem; height: var(--bar-height); display: flex; align-items: center; justify-content: center; font-size: 0.95rem; border-bottom: 1px solid var(--border); }
 .dropzone {
@@ -522,15 +524,15 @@ button.chip:hover, .preview:hover { border-color: var(--border-strong); }
 .keys td:first-child { white-space: nowrap; width: 11rem; }
 
 .toast {
-  position: fixed; inset: auto; margin: 0; border: 0; left: 50%; bottom: 1.5rem; transform: translateX(-50%);
-  max-width: calc(100vw - 2rem); padding: 0.65rem 1rem; border-radius: var(--radius);
+  position: fixed; inset: auto; margin: 0; border: 0; left: 50%; transform: translateX(-50%);
+  bottom: calc(1.5rem + env(safe-area-inset-bottom)); max-width: calc(100vw - 2rem); padding: 0.65rem 1rem; border-radius: var(--radius);
   background: var(--fg); color: var(--bg); box-shadow: 0 8px 24px var(--shadow);
 }
 /* Roundcube's session notice stays until the sign-in, at the top so the toasts below it still show. */
 .toast.signed-out { bottom: auto; top: 1.5rem; display: flex; align-items: center; gap: 0.75rem; }
 
 .fab { /* Elastic's floating Compose: 56 px, 14 px from the right edge and from the footer above the bottom */
-  position: absolute; right: 0.875rem; bottom: calc(var(--bar-height) + 0.875rem); z-index: 5;
+  position: absolute; right: 0.875rem; bottom: calc(var(--bar-height) + env(safe-area-inset-bottom) + 0.875rem); z-index: 5;
   width: 3.5rem; height: 3.5rem; border: 0; border-radius: 50%; cursor: pointer;
   display: grid; place-items: center; background: var(--accent); color: var(--fg-on-accent);
   box-shadow: 0 6px 18px var(--shadow);
@@ -585,7 +587,8 @@ button.chip:hover, .preview:hover { border-color: var(--border-strong); }
 /* Elastic's footer under a phone's message: Previous, Reply, Next. */
 .reader-nav {
   display: flex; align-items: center; justify-content: space-around; flex: none;
-  height: var(--bar-height); border-top: 1px solid var(--border); background: var(--bg-header);
+  height: calc(var(--bar-height) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid var(--border); background: var(--bg-header);
 }
 @media (max-width: 768px) {
   .nav-tools, .open-window { display: none; } /* the footer has them; a phone gets no second window */

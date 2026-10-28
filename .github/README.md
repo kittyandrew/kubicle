@@ -56,6 +56,17 @@ nix build .#web
 2. Keep Mailu's `WEBMAIL` set to anything but `none`, or front creates no webmail routes.
 3. Mount a writable volume at `/var/lib/kubicle`. The image runs as `nobody`.
 4. Set the variables below. At least `KUBICLE_PUBLIC_ORIGIN`, `KUBICLE_TRUSTED_PROXY` and `KUBICLE_MAIL_TLS_NAME` are needed.
+5. Give front this override, as a `.conf` file in the directory mounted at front's `/overrides`, with your
+   `WEB_WEBMAIL` in place of `/login`. Without it every image in a mail shows broken: the mail frame sends no
+   cookie, so front's sign-in check redirects its image requests, which a signed URL authorizes in kubicle instead.
+
+   ```nginx
+   location ~ ^/login/(inline|image)$ {
+     rewrite ^/login/(.*) /$1 break;
+     include /etc/nginx/proxy.conf;
+     proxy_pass http://$webmail;
+   }
+   ```
 
 There is no login page: front's `/sso.php` hands kubicle the user, and kubicle proves it by signing in to IMAP.
 
