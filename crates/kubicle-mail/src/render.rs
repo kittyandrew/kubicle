@@ -1020,7 +1020,12 @@ pub fn part_response(mail: &Mail, path: &PartPath, route: PartRoute, links: &imp
                 let mut head = String::new();
                 headers_table(&header_rows(nested, None), &written_date(nested), &mut head);
                 head.push_str("<hr>");
-                let page = page(&head, &body(&structure, links, remote_images, text).0);
+                let (body, _) = body(&structure, links, remote_images, text);
+                if body.too_large {
+                    // The reader lists the part; this sandboxed page cannot download it (`body`).
+                    head.push_str("<p class=\"part-notice\">Part of this message is too large to show here.</p>");
+                }
+                let page = page(&head, &body);
                 Some(sandboxed_page(&page, &nested.subject().map(clean).unwrap_or_default(), links.prefix()))
             }
             _ => None,

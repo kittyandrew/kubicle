@@ -783,20 +783,20 @@ HTML inserted into the application's own page. Each rule below answers a class o
   Word export measured a fifth of it), or that it reads as ambiguous. `lol_html` tokenizes for real, so a `<` in
   CSS, a comment or an attribute never counts as a tag and no real mail is refused for one (`render.rs`,
   `too_complex`).
-- **One hostile mail's cost is bounded.** One process serves every user, so no mail may cost it out of proportion:
-  past 1,000 messages named inside it, or 50,000 part delimiter lines, a message is not parsed (422, and it still
-  downloads); a part past 2 MiB is listed with the attachments, HTML the admission pass refuses shows a notice; 1,000 image sources per
-  part, 16 enriched excerpts and 256 styling spans are converted, and 1,000 uuencoded files a message unpacked; a
-  reply or forward quotes no HTML part past 2 MiB; tables lay out a cell per line; address lists compare as sets;
-  a list row carries four recipients, the three the list shows and one for its `...`, so a mail to tens of thousands
-  makes no megabyte list page (the reader fetches the full list itself);
-  THREAD is read and walked without recursion; an import, a zip and a forward take 100,000 messages, a draft's files
-  must fit the mail server's size limit before one is read, and a user keeps 1,000 uploads; a user's settings are 1
-  MB at most; a search over several folders merges 1,000 hits of each; the image proxy fetches 8 at a time; and the
-  engine keeps a trail of at most 1,000 replaced draft copies, for a concurrent save that still names one, dropped
-  whole past the cap. The limits are constants in `render.rs`, `structure.rs`, `uploads.rs`, `settings.rs`,
-  `sync.rs`, `proxy.rs` and `api`'s `MAX_UIDS`; each but the import's, the styling spans' and the draft trail's
-  has a case in `tests/vm/cost.py` (the proxy's in
+- **One hostile mail's cost is bounded.** One process serves every user, so no mail may cost it out of
+  proportion: past 1,000 messages named inside it, or 50,000 part delimiter lines, a message is not parsed (422,
+  and it still downloads); a part past 2 MiB is listed with the attachments (a forward's own page says it is left
+  out), HTML the admission pass refuses shows a notice; 1,000 image sources per part, 16 enriched excerpts and
+  256 styling spans are converted, and 1,000 uuencoded files a message unpacked; a reply or forward quotes no
+  HTML part past 2 MiB; tables lay out a cell per line; address lists compare as sets; a list row carries four
+  recipients, the three the list shows and one for its `...`, so a mail to tens of thousands makes no megabyte
+  list page (the reader fetches the full list itself); THREAD is read and walked without recursion; an import, a
+  zip and a forward take 100,000 messages, a draft's files must fit the mail server's size limit before one is
+  read, and a user keeps 1,000 uploads; a user's settings are 1 MB at most; a search over several folders merges
+  1,000 hits of each; the image proxy fetches 8 at a time; and the engine keeps a trail of at most 1,000 replaced
+  draft copies, for a concurrent save that still names one, dropped whole past the cap. The limits are constants
+  in `render.rs`, `structure.rs`, `uploads.rs`, `settings.rs`, `sync.rs`, `proxy.rs` and `api`'s `MAX_UIDS`; each
+  but the import's, the styling spans' and the draft trail's has a case in `tests/vm/cost.py` (the proxy's in
   `tests/vm/scenarios.py`, `image_proxy_bounded`), as an import small enough to finish in front's proxy timeout
   cannot tell the reads per APPEND it had from none. One user with slow image hosts can fill the proxy's 8 for
   everyone, which only delays remote images (accepted, Oct 26, 2026).

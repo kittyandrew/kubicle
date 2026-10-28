@@ -1771,6 +1771,22 @@ def too_large_part() -> None:
     assert answered == [("200", str(saved))] and saved > 2 << 20, (answered, saved)
 
 
+def too_large_forwarded() -> None:
+    # vm-full only: a forwarded message opened as a page of its own says that a part was too large to show there,
+    # and links to no download, which its sandbox would refuse.
+    subject = "A forward with a part too large to show"
+    head = f"From: Pat <pat@example.net>\\nTo: {tier.user}\\nContent-Type: multipart/mixed; boundary=b\\n\\n--b\\n"
+    head += "Content-Type: message/rfc822\\n\\nFrom: Shop <shop@example.net>\\nSubject: Huge log\\n\\n"
+    body = "head -c 2200000 /dev/zero | tr '\\0' a | fold -w 76"  # past render.rs's MAX_SHOWN, 2 MiB
+    machine.succeed(f"{{ printf '{head}'; {body}; printf '\\n--b--\\n'; }} > /tmp/raw.eml")
+    machine.succeed(tier.deliver(subject, "--data @/tmp/raw.eml"))
+    views = {a["filename"]: a["view_url"] for a in message(arrived("INBOX", subject))["attachments"]}
+    page = fetched(views["Huge log.eml"])  # as Open loads it
+    shown = page["text"][:2000]
+    assert page["status"] == 200 and "too large to show here" in page["text"], shown
+    assert "/download?" not in page["text"], shown
+
+
 def invoice(subject: str) -> int:
     """Delivers a mail with every line the print page shows and one attachment; answers its UID."""
     return deliver_raw(
