@@ -16,11 +16,18 @@
   }: let
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
+    # The CLI must be the wasm-bindgen version Cargo.lock pins: it rejects another schema version's Wasm.
+    # nixpkgs keeps a wasm-bindgen-cli_<version> per release, so neither kind of bump splits the two.
+    wasm-bindgen-cli = let
+      lock = pkgs.lib.importTOML ./Cargo.lock;
+      locked = pkgs.lib.findFirst (p: p.name == "wasm-bindgen") (throw "no wasm-bindgen in Cargo.lock") lock.package;
+    in
+      pkgs."wasm-bindgen-cli_${pkgs.lib.replaceStrings ["."] ["_"] locked.version}";
     build = profile:
       pkgs.callPackage ./nix/package.nix {
         fenix = fenix.packages.${system};
         craneLib = crane.mkLib pkgs;
-        inherit profile;
+        inherit profile wasm-bindgen-cli;
       };
     kubicle = build "release";
     tested = build "fast"; # what the suites run: rebuilds in seconds, not one core's half minute
@@ -72,7 +79,7 @@
 
     devShells.${system} = {
       default = pkgs.mkShell {
-        packages = [kubicle.toolchain pkgs.wasm-bindgen-cli pkgs.binaryen pkgs.sqlite] ++ lintTools;
+        packages = [kubicle.toolchain wasm-bindgen-cli pkgs.binaryen pkgs.sqlite] ++ lintTools;
       };
       # tests/lint.sh alone, for CI (.github/workflows/quality.yml): no compiler, wasm target or C toolchain to fetch
       lint = pkgs.mkShellNoCC {packages = [kubicle.fmtToolchain] ++ lintTools;};
